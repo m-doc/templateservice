@@ -8,24 +8,17 @@ import org.fusesource.scalate._
 import play.api._
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
+import services.FileService
 
 object Application extends Controller {
 
   val baseDir = play.Play.application.configuration.getString("static.files.dir")
   val templateEngine = new TemplateEngine
-
-  private[this] def fileSystemPath(path: String): URI = {
-    new URI("file:" + baseDir + "/" + path)
-  }
-
-  private[this] def fileInBaseDir(path: String): Option[java.io.File] = {
-    val file = new java.io.File(fileSystemPath(path))
-    if (file.exists() && file.isFile && file.canRead) Some(file) else None
-  }
+  val fileService = FileService.simpleFileService(baseDir)
 
   def getFile(path: String) = Action {
     Logger.trace(s"getFile(path=$path)")
-    fileInBaseDir(path).map(f => {
+    fileService.getFile(path).map(f => {
       Logger.info(s"returning file with absolute path '${f.getAbsolutePath}'")
       Ok.sendFile(content = f, inline = true)
     }).getOrElse {
@@ -47,29 +40,15 @@ object Application extends Controller {
       result.getOrElse(Map.empty[String, String])
     }
     def processTemplate(attr: Map[String, String]): Option[String] = {
-      fileInBaseDir(path).map { f =>
+      fileService.getFile(path).map { f =>
         templateEngine.layout(f.getAbsolutePath, attr)
-      }
-    }
-    def writeProcessedTemplateToFile(processedTemplate: Option[String]): Option[File] = {
-      processedTemplate.map { content =>
-        val outFile = new File(new URI("file:" + baseDir + pathInBaseDir))
-        val writer = new PrintWriter(outFile)
-        try {
-          Logger.info(s"writing file '${outFile.getAbsolutePath}'")
-          writer.print(content)
-        }
-        finally {
-          writer.close()
-        }
-        outFile
       }
     }
 
     Logger.trace(s"processTemplate(path=$path): ${request.body}")
     val attr = parseAttributesFromRequest(request)
     val processedTemplate: Option[String] = processTemplate(attr)
-    val outFile: Option[File] = writeProcessedTemplateToFile(processedTemplate)
+    val outFile: Option[File] = processedTemplate.map { fileService.writeToFile(_, pathInBaseDir) }
 
     outFile.map(f => Ok(pathInBaseDir)).getOrElse(NotFound)
   }
