@@ -28,7 +28,6 @@ object Application extends Controller {
   }
 
   def processTemplate(path: String, fileType: Option[String]) = Action(parse.json(10000)) { request =>
-    lazy val pathInBaseDir = "/out/" + UUID.randomUUID().toString.replaceAll("-", "") + fileType.map("." + _).getOrElse("")
     def parseAttributesFromRequest(request: Request[JsValue]): Map[String, String] = {
       val attributesOption = request.body match {
         case JsObject(content) => Some(content.toMap)
@@ -48,8 +47,8 @@ object Application extends Controller {
     Logger.trace(s"processTemplate(path=$path): ${request.body}")
     val attr = parseAttributesFromRequest(request)
     val processedTemplate: Option[String] = processTemplate(attr)
-    val outFile: Option[File] = processedTemplate.map { fileService.writeToFile(_, pathInBaseDir) }
+    val id: Option[String] = processedTemplate.map { fileService.createFile(_, path, fileType) }
 
-    outFile.map(f => Ok(pathInBaseDir)).getOrElse(NotFound)
+    id.map(Ok(_)).getOrElse(NotFound)
   }
 }
