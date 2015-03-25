@@ -7,14 +7,12 @@ import java.util.UUID
 import play.api.Logger
 
 trait FileService {
-  protected def baseDir: String
-
   def getFile(path: String): Option[java.io.File]
   def createFile(fileContent: String, pathInBaseDir: String, suffix: Option[String]): String
 
 }
 
-private[this] final class SimpleFileService(override val baseDir: String) extends FileService {
+private[this] final class SimpleFileService(baseDir: String) extends FileService {
   private[this] def fileSystemPath(path: String): URI = {
     new URI("file:" + baseDir + "/" + path)
   }
