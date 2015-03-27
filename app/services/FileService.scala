@@ -37,6 +37,12 @@ private[this] final class SimpleFileService(baseDir: String) extends FileService
   }
 }
 
+private[this] final class DatabaseFileService extends FileService  {
+  override def getFile(path: String) = ???
+
+  override def createFile(fileContent: String, pathInBaseDir: String, suffix: Option[String]) = ???
+}
+
 object FileService {
     def simpleFileService(baseDir: String): FileService = new SimpleFileService(baseDir)
 }

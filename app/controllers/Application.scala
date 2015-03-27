@@ -1,14 +1,10 @@
 package controllers
 
-import java.io.{File, PrintWriter}
-import java.net.URI
-import java.util.UUID
-
 import org.fusesource.scalate._
 import play.api._
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
-import services.FileService
+import services.{SimpleFileService, FileService}
 
 object Application extends Controller {
 
