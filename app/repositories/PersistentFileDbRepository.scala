@@ -2,7 +2,7 @@ package repositories
 
 import java.sql.Blob
 
-import models.{PersistentFileId, PersistentFile}
+import models.PersistentFile
 import play.api.db._
 import play.api.Play.current
 
@@ -23,16 +23,15 @@ object PersistentFileDbRepository extends PersistentFileRepository {
   }
 
   val mapper = {
-    get[String]("id") ~
     get[String]("path") ~
     get[Array[Byte]]("content") map {
-      case id~path~content => PersistentFile(PersistentFileId(id), path, content)
+      case path~content => PersistentFile(path, content)
     }
   }
 
   def create(file: PersistentFile): Unit =  {
     DB.withConnection { implicit connection =>
-      SQL("insert into file (id, path, content) values (${file.id.value}, ${file.path}, ${file.content})")
+      SQL("insert into file (path, content) values (${file.path}, ${file.content})")
         .executeInsert()
     }
   }
