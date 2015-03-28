@@ -4,7 +4,7 @@ import org.fusesource.scalate._
 import play.api._
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
-import services.{SimpleFileService, FileService}
+import services.FileService
 
 object Application extends Controller {
 
