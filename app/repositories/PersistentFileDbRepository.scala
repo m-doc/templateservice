@@ -2,7 +2,7 @@ package repositories
 
 import java.sql.Blob
 
-import models.PersistentFile
+import models.{PersistenFilePath, PersistentFile}
 import play.api.db._
 import play.api.Play.current
 
@@ -22,10 +22,12 @@ object PersistentFileDbRepository extends PersistentFileRepository {
     }
   }
 
+  def PersistentFilePath(path: String): PersistenFilePath = ???
+
   val mapper = {
     get[String]("path") ~
     get[Array[Byte]]("content") map {
-      case path~content => PersistentFile(path, content)
+      case path~content => PersistentFile(PersistentFilePath(path), content)
     }
   }
 

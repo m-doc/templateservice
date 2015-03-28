@@ -3,13 +3,13 @@ package repositories
 import java.io._
 import java.net.URI
 
-import models.PersistentFile
+import models.{PersistenFilePath, PersistentFile}
 
 class PersistentFileFsRepository(baseDir: String) extends PersistentFileRepository {
   private[this] def fileSystemPath(path: String): String = baseDir + "/" + path
 
   override def create(file: PersistentFile) {
-    val outFile = new File(new URI(fileSystemPath(file.path)))
+    val outFile = new File(new URI(fileSystemPath(file.path.path)))
     val writer = new PrintWriter(outFile)
     try {
       writer.print(file.content)
@@ -26,7 +26,7 @@ class PersistentFileFsRepository(baseDir: String) extends PersistentFileReposito
       try {
         val content: Array[Byte] = new Array[Byte](file.length().toInt)
         in.read(content)
-        Some(PersistentFile(path = path, content = content))
+        Some(PersistentFile(PersistenFilePath(path), content))
       }
       finally {
         in.close()
