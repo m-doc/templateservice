@@ -1,5 +1,5 @@
 package models
 
-case class PersistenFilePath(path: String) extends AnyVal
+case class PersistentFilePath(path: String) extends AnyVal
 
-case class PersistentFile(path: PersistenFilePath, content: Array[Byte])
+case class PersistentFile(path: PersistentFilePath, content: Array[Byte])

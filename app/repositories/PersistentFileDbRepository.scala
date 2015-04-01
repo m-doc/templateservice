@@ -2,7 +2,8 @@ package repositories
 
 import java.sql.Blob
 
-import models.{PersistenFilePath, PersistentFile}
+import models.{PersistentFilePath, PersistentFile}
+import play.api.Logger
 import play.api.db._
 import play.api.Play.current
 
@@ -22,8 +23,6 @@ object PersistentFileDbRepository extends PersistentFileRepository {
     }
   }
 
-  def PersistentFilePath(path: String): PersistenFilePath = ???
-
   val mapper = {
     get[String]("path") ~
     get[Array[Byte]]("content") map {
@@ -33,14 +32,16 @@ object PersistentFileDbRepository extends PersistentFileRepository {
 
   def create(file: PersistentFile): Unit =  {
     DB.withConnection { implicit connection =>
-      SQL("insert into file (path, content) values (${file.path}, ${file.content})")
+      SQL(s"insert into file (path, content) values ('${file.path}', ${file.content})")
         .executeInsert()
+      Logger.info(s"created file with path=${file.path.path} in db")
+
     }
   }
 
   def findByPath(path: String): Option[PersistentFile] =  {
     DB.withConnection { implicit connection =>
-      SQL("select * from file where path = ${path}")
+      SQL(s"select * from file where path = '${path}'")
         .as(mapper.singleOpt)
     }
   }

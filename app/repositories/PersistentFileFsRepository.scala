@@ -3,16 +3,18 @@ package repositories
 import java.io._
 import java.net.URI
 
-import models.{PersistenFilePath, PersistentFile}
+import models.{PersistentFilePath, PersistentFile}
+import play.api.Logger
 
 class PersistentFileFsRepository(baseDir: String) extends PersistentFileRepository {
   private[this] def fileSystemPath(path: String): String = baseDir + "/" + path
 
   override def create(file: PersistentFile) {
-    val outFile = new File(new URI(fileSystemPath(file.path.path)))
-    val writer = new PrintWriter(outFile)
+    val outFile = new File(fileSystemPath(file.path.path))
+    val writer = new FileOutputStream(outFile)
     try {
-      writer.print(file.content)
+      writer.write(file.content)
+      Logger.info(s"created file with path=${file.path.path} in file system path ${outFile.getAbsolutePath}")
     }
     finally {
       writer.close()
@@ -26,7 +28,7 @@ class PersistentFileFsRepository(baseDir: String) extends PersistentFileReposito
       try {
         val content: Array[Byte] = new Array[Byte](file.length().toInt)
         in.read(content)
-        Some(PersistentFile(PersistenFilePath(path), content))
+        Some(PersistentFile(PersistentFilePath(path), content))
       }
       finally {
         in.close()
