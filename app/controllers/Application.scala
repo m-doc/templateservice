@@ -18,7 +18,7 @@ object Application extends Controller {
     allowCaching = false
     allowReload = false
   }
-  val fileRepository = RepositoryResolver.fileRepository
+  lazy val fileRepository = RepositoryResolver.fileRepository
 
   def getFile(path: String) = Action {
     Logger.trace(s"getFile(path=$path)")
