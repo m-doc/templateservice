@@ -1,41 +1,22 @@
-import java.io.{FileOutputStream, OutputStream, OutputStreamWriter, File}
+import org.specs2.mutable.BeforeAfter
+import play.api.libs.json.Json
+import play.api.test.{FakeRequest, PlaySpecification, WithApplication}
 
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import play.api.libs.json.JsValue
-import play.api.test.Helpers._
-import play.api.test._
-import play.api.Play.current
-import play.api.libs.json._
+trait ApplicationSpec extends PlaySpecification with BeforeAfter {
 
-/**
- * Add your spec here.
- * You can mock out a whole application including requests, plugins etc.
- * For more information, consult the wiki.
- */
-@RunWith(classOf[JUnitRunner])
-class ApplicationSpec extends Specification {
+  lazy val originalUseDbProperty = System.getProperty("use.db")
+
+  lazy val fileName = "testfile.mustache"
+  lazy val filePath = "/" + fileName
+  lazy val fileContent = "Hello {{name}}!".getBytes
+
+  def createTestFile(): Unit
+
+  def cleanUp(fileId: String): Unit
+
+  def useDb: String
 
   "Application" should {
-
-    val fileContent = "Hello {{name}}!".getBytes
-    val filePath = "/testfile.mustache"
-
-    def fileInBasedir(byPath: String) = new File(current.configuration.getString("static.files.dir").get+byPath)
-
-    def createTestFile() = {
-      val file = fileInBasedir(filePath)
-      if (!file.exists()) file.createNewFile()
-      val writer = new FileOutputStream(file)
-      try {
-        writer.write(fileContent)
-      }
-      finally {
-        writer.close()
-        file.deleteOnExit()
-      }
-    }
 
     "send a file with relative path denoted by the request path" in new WithApplication {
       createTestFile()
@@ -56,12 +37,20 @@ class ApplicationSpec extends Specification {
         .withJsonBody(Json.parse("""{ "name" : "World"}"""))
       val processTemplateResult = route(requestProcessTemplate).get
       status(processTemplateResult) must beEqualTo(OK)
-      contentAsString(processTemplateResult) must beMatching(".+\\.html")
-
       val fileId = contentAsString(processTemplateResult)
+      fileId must beMatching(".+\\.html")
+      cleanUp(fileId)
       val getFileResult = route(FakeRequest(GET, "/"+fileId)).get
-      fileInBasedir("/"+fileId).deleteOnExit()
       contentAsString(getFileResult) must beEqualTo("Hello World!")
     }
   }
+
+  override def after {
+    System.setProperty("use.db", originalUseDbProperty)
+  }
+
+  override def before {
+    System.setProperty("use.db", useDb)
+  }
+
 }

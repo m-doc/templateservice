@@ -6,19 +6,19 @@ import java.util.UUID
 import models.{PersistentFile, PersistentFilePath}
 import org.fusesource.scalate._
 import org.fusesource.scalate.support.StringTemplateSource
+import play.api.Play.current
 import play.api._
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
-import play.api.Play.current
 import repositories.RepositoryFactory
 
 object Application extends Controller {
 
+  lazy val fileRepository = RepositoryResolver.fileRepository
   val templateEngine = new TemplateEngine {
     allowCaching = false
     allowReload = false
   }
-  lazy val fileRepository = RepositoryResolver.fileRepository
 
   def getFile(path: String) = Action {
     Logger.trace(s"getFile(path=$path)")
@@ -63,11 +63,11 @@ object Application extends Controller {
 }
 
 object RepositoryResolver {
-  val useDb = current.configuration.getString("use.db")
-  val baseDir = current.configuration.getString("static.files.dir")
+  lazy val useDb = current.configuration.getString("use.db")
+  lazy val baseDir = current.configuration.getString("static.files.dir")
 
-  val fileRepository = useDb match {
-    case Some(_) => RepositoryFactory.persistentFileDbRepository
+  lazy val fileRepository = useDb match {
+    case Some("true") => RepositoryFactory.persistentFileDbRepository
     case _ => RepositoryFactory.persistentFileFsRespository(baseDir.get)
   }
 }
