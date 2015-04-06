@@ -37,18 +37,19 @@ object PersistentFileDbRepository extends PersistentFileRepository {
 
   def create(file: PersistentFile): Unit =  {
     DB.withConnection { implicit connection =>
-      SQL(s"insert into file (path, content) values ({path}, {data})")
+      val result = SQL(s"insert into file (path, content) values ({path}, {data})")
         .on(
           'path -> file.path.path,
           'data -> file.content
-        ).executeInsert()
-      Logger.info(s"created file with path=${file.path.path} in db")
+        ).execute()
+      Logger.info(s"creating file with path=${file.path.path} in db returned ${result}")
     }
   }
 
   def findByPath(path: String): Option[PersistentFile] =  {
     DB.withConnection { implicit connection =>
-      SQL(s"select * from file where path = '${path}'")
+      SQL(s"select * from file where path = {path}")
+        .on('path -> path)
         .as(mapper.singleOpt)
     }
   }

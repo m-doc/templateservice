@@ -1,3 +1,5 @@
+import java.util.UUID
+
 import org.specs2.mutable.BeforeAfter
 import play.api.Application
 import play.api.libs.json.Json
@@ -7,7 +9,7 @@ trait ApplicationSpec extends PlaySpecification with BeforeAfter {
 
   lazy val originalUseDbProperty = System.getProperty("use.db")
 
-  lazy val fileName = "testfile.mustache"
+  lazy val fileName = UUID.randomUUID().toString.replaceAll("-", "") + ".mustache"
   lazy val filePath = "/" + fileName
   lazy val fileContent = "Hello {{name}}!".getBytes
 
@@ -27,7 +29,6 @@ trait ApplicationSpec extends PlaySpecification with BeforeAfter {
     }
 
     "send status 'not found' for unknown path" in new WithApplication {
-      createTestFile
       val result = route(FakeRequest(GET, "/asdf.qwer")).get
       status(result) must beEqualTo(NOT_FOUND)
     }
