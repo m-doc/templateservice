@@ -2,6 +2,7 @@ import java.io.{File, FileOutputStream}
 
 import org.junit.runner._
 import org.specs2.runner._
+import play.api.Application
 import play.api.Play.current
 
 @RunWith(classOf[JUnitRunner])
@@ -9,7 +10,7 @@ class ApplicationFileModeSpec extends ApplicationSpec {
 
   override lazy val useDb = "false"
 
-  override def createTestFile() {
+  override def createTestFile(implicit app: Application) {
     val file = fileInBasedir(filePath)
     if (!file.exists()) file.createNewFile()
     val writer = new FileOutputStream(file)
