@@ -12,6 +12,8 @@ class ApplicationDbModeSpec extends ApplicationSpec {
 
   def createTestFile() = withTransaction { implicit connection =>
     RepositoryFactory.persistentFileDbRepository.create(PersistentFile(PersistentFilePath(fileName), fileContent))
+    connection.commit()
+    connection.flush()
   }
 
   override def cleanUp(fileId: String) {
