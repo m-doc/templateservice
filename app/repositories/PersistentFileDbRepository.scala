@@ -29,6 +29,12 @@ object PersistentFileDbRepository extends PersistentFileRepository {
     }
   }
 
+  implicit object byteArrayToStatement extends ToStatement[Array[Byte]] {
+    def set(s: PreparedStatement, i: Int, array: Array[Byte]): Unit = {
+      s.setBlob(i, new javax.sql.rowset.serial.SerialBlob(array))
+    }
+  }
+
   def create(file: PersistentFile): Unit =  {
     DB.withConnection { implicit connection =>
       SQL(s"insert into file (path, content) values ({path}, {data})")
@@ -47,9 +53,4 @@ object PersistentFileDbRepository extends PersistentFileRepository {
     }
   }
 
-  implicit object byteArrayToStatement extends ToStatement[Array[Byte]] {
-    def set(s: PreparedStatement, i: Int, array: Array[Byte]): Unit = {
-      s.setBlob(i, new javax.sql.rowset.serial.SerialBlob(array))
-    }
-  }
 }
