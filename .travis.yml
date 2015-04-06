@@ -5,4 +5,4 @@ jdk:
 - openjdk7
 - oraclejdk7
 - oraclejdk8
-script: activator clean test
+script: sbt clean test
