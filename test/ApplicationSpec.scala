@@ -9,11 +9,11 @@ trait ApplicationSpec extends PlaySpecification with BeforeAfter {
 
   lazy val originalUseDbProperty = System.getProperty("use.db")
 
-  lazy val fileName = UUID.randomUUID().toString.replaceAll("-", "") + ".mustache"
-  lazy val filePath = "/" + fileName
+  def fileName = UUID.randomUUID().toString.replaceAll("-", "") + ".mustache"
+  def filePath(fileName: String) = "/" + fileName
   lazy val fileContent = "Hello {{name}}!".getBytes
 
-  def createTestFile(implicit app: Application): Unit
+  def createTestFile(implicit app: Application): String
 
   def cleanUp(fileId: String): Unit
 
@@ -22,7 +22,7 @@ trait ApplicationSpec extends PlaySpecification with BeforeAfter {
   "Application" should {
 
     "send a file with relative path denoted by the request path" in new WithApplication {
-      createTestFile
+      val filePath = createTestFile
       val result = route(FakeRequest(GET, filePath)).get
       status(result) must beEqualTo(OK)
       contentAsBytes(result) must beEqualTo(fileContent)
@@ -34,7 +34,7 @@ trait ApplicationSpec extends PlaySpecification with BeforeAfter {
     }
 
     "write a new file while processing a template" in new WithApplication {
-      createTestFile
+      val filePath = createTestFile
       val requestProcessTemplate = FakeRequest(POST, filePath+"?fileType=html")
         .withJsonBody(Json.parse("""{ "name" : "World"}"""))
       val processTemplateResult = route(requestProcessTemplate).get

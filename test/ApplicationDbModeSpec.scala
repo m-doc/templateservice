@@ -9,7 +9,9 @@ import repositories.RepositoryFactory
 class ApplicationDbModeSpec extends ApplicationSpec {
 
   def createTestFile(implicit app: Application) = withTransaction { implicit connection =>
-    RepositoryFactory.persistentFileDbRepository.create(PersistentFile(PersistentFilePath(fileName), fileContent))
+    val _fileName = fileName
+    RepositoryFactory.persistentFileDbRepository.create(PersistentFile(PersistentFilePath(_fileName), fileContent))
+    filePath(_fileName)
   }
 
   override def cleanUp(fileId: String) {
