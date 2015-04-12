@@ -14,7 +14,7 @@ import repositories.RepositoryFactory
 
 object Application extends Controller {
 
-  lazy val fileRepository = RepositoryResolver.fileRepository
+  def fileRepository = RepositoryResolver.fileRepository
   val templateEngine = new TemplateEngine {
     allowCaching = false
     allowReload = false
@@ -63,10 +63,11 @@ object Application extends Controller {
 }
 
 object RepositoryResolver {
-  lazy val useDb = current.configuration.getString("use.db")
-  lazy val baseDir = current.configuration.getString("static.files.dir")
+  def useDb = current.configuration.getString("use.db")
 
-  lazy val fileRepository = useDb match {
+  def baseDir = current.configuration.getString("static.files.dir")
+
+  def fileRepository = useDb match {
     case Some("true") => RepositoryFactory.persistentFileDbRepository
     case _ => RepositoryFactory.persistentFileFsRespository(baseDir.get)
   }

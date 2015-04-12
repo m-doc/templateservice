@@ -10,8 +10,9 @@ class ApplicationFileModeSpec extends ApplicationSpec {
 
   override lazy val useDb = "false"
 
-  override def createTestFile(implicit app: Application) {
-    val file = fileInBasedir(filePath)
+  override def createTestFile(implicit app: Application) = {
+    val _fileName = fileName
+    val file = fileInBasedir(filePath(_fileName))
     if (!file.exists()) file.createNewFile()
     val writer = new FileOutputStream(file)
     try {
@@ -21,6 +22,7 @@ class ApplicationFileModeSpec extends ApplicationSpec {
       writer.close()
       file.deleteOnExit()
     }
+    _fileName
   }
 
   def cleanUp(fileId: String) = fileInBasedir("/" + fileId).deleteOnExit()
