@@ -13,7 +13,6 @@ class ApplicationFileModeSpec extends ApplicationSpec {
   override def createTestFile(implicit app: Application) = {
     val _filePath = filePath(fileName)
     val file = fileInBasedir(_filePath)
-    if (!file.exists()) file.createNewFile()
     val writer = new FileOutputStream(file)
     try {
       writer.write(fileContent)

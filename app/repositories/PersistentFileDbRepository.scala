@@ -42,7 +42,7 @@ object PersistentFileDbRepository extends PersistentFileRepository {
           'path -> file.path.path,
           'data -> file.content
         ).execute()
-      Logger.info(s"creating file with path=${file.path.path} in db returned ${result}")
+      Logger.info(s"creating file with path=${file.path.path}")
     }
   }
 
