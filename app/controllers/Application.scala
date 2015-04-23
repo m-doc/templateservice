@@ -12,6 +12,9 @@ import play.api.libs.json._
 import play.api.mvc.{Action, _}
 import repositories.RepositoryFactory
 
+import scalaz.effect.IO
+
+
 object Application extends Controller {
 
   def fileRepository = RepositoryResolver.fileRepository
@@ -22,16 +25,18 @@ object Application extends Controller {
 
   def getFile(path: String) = Action {
     Logger.trace(s"getFile(path=$path)")
-    fileRepository.findByPath(path).map(f => {
-      Ok(f.content)
-    }).getOrElse {
-      NotFound
-    }
+    (for {
+      fileOpt <- fileRepository.findByPath(path)
+    } yield fileOpt match {
+        case Some(file) => Ok(file.content)
+        case _ => NotFound
+      }).unsafePerformIO
   }
 
-  def processTemplate(path: String, fileType: Option[String]) = Action(parse.json(100000)) { request =>
-    def parseAttributesFromRequest(request: Request[JsValue]): Map[String, String] = {
-      val attributesOption = request.body match {
+  def processTemplate(path: String, fileType: Option[String]) = Action(parse.json(100000)) { req =>
+    lazy val parseAttributesFromRequest: (Request[JsValue]) => Map[String, String] =
+      (request) => {
+        lazy val attributesOption = request.body match {
         case JsObject(content) => Some(content.toMap)
         case _ => None
       }
@@ -40,25 +45,39 @@ object Application extends Controller {
       } yield attributes.mapValues(_.asOpt[String].get)
       result.getOrElse(Map.empty[String, String])
     }
-    def processTemplate(attr: Map[String, String]): Option[String] = {
-      fileRepository.findByPath(path).map { f =>
-        templateEngine.layout(new StringTemplateSource(f.path.path, new String(f.content)), attr)
-      }
-    }
 
-    Logger.trace(s"processTemplate(path=$path): ${request.body}")
-    val attr = parseAttributesFromRequest(request)
-    val processedTemplate: Option[String] = processTemplate(attr)
+    lazy val processTemplate: (PersistentFile) => (Map[String, String]) => String =
+      (templateFile) => (attr) => templateEngine.layout(
+        new StringTemplateSource(templateFile.path.path, new String(templateFile.content)), attr)
 
-    val persistentFile = processedTemplate.map { pt =>
+    lazy val toOutFile: (String) => PersistentFile =
+      (processedTemplate) => {
       val path = PersistentFilePath(UUID.randomUUID().toString.replace("-", "") + fileType.map("."+_).getOrElse(""))
-      val content = pt.getBytes(Charset.forName("UTF-8"))
-      val persistentFile = PersistentFile(path, content)
-      fileRepository.create(persistentFile)
-      persistentFile
+        val content = processedTemplate.getBytes(Charset.forName("UTF-8"))
+        PersistentFile(path, content)
     }
 
-    persistentFile.map(f => Ok(f.path.path)).getOrElse(NotFound)
+    def toOk: (PersistentFile) => Result =
+      (outFile) => Ok(outFile.path.path)
+
+    def run(templateFile: PersistentFile): PersistentFile =
+      parseAttributesFromRequest
+        .andThen(processTemplate.apply(templateFile))
+        .andThen(toOutFile)
+        .apply(req)
+
+    lazy val okResult: IO[Option[Result]] = for {
+      fileOpt <- fileRepository.findByPath(path)
+      templateFile <- fileOpt
+    } yield {
+        val processedTemplate = run(templateFile)
+        fileRepository.create(processedTemplate)
+        toOk(processedTemplate)
+      }
+
+    okResult
+      .map(_.getOrElse(NotFound))
+      .unsafePerformIO()
   }
 }
 

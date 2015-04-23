@@ -9,6 +9,8 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.db._
 
+import scalaz.effect.IO
+
 
 object PersistentFileDbRepository extends PersistentFileRepository {
   val mapper = {
@@ -35,7 +37,7 @@ object PersistentFileDbRepository extends PersistentFileRepository {
     }
   }
 
-  def create(file: PersistentFile): Unit =  {
+  def create(file: PersistentFile): IO[Unit] = IO {
     DB.withConnection { implicit connection =>
       val result = SQL("insert into file (path, content) values ({path}, {data})")
         .on(
@@ -46,7 +48,7 @@ object PersistentFileDbRepository extends PersistentFileRepository {
     }
   }
 
-  def findByPath(path: String): Option[PersistentFile] =  {
+  def findByPath(path: String): IO[Option[PersistentFile]] = IO {
     DB.withConnection { implicit connection =>
       SQL("select * from file where path = {path}")
         .on('path -> path)

@@ -1,15 +1,16 @@
 package repositories
 
 import java.io._
-import java.net.URI
 
-import models.{PersistentFilePath, PersistentFile}
+import models.{PersistentFile, PersistentFilePath}
 import play.api.Logger
+
+import scalaz.effect.IO
 
 class PersistentFileFsRepository(baseDir: String) extends PersistentFileRepository {
   private[this] def fileSystemPath(path: String): String = baseDir + "/" + path
 
-  override def create(file: PersistentFile) {
+  override def create(file: PersistentFile) = IO {
     val outFile = new File(fileSystemPath(file.path.path))
     val writer = new FileOutputStream(outFile)
     try {
@@ -21,7 +22,7 @@ class PersistentFileFsRepository(baseDir: String) extends PersistentFileReposito
     }
   }
 
-  override def findByPath(path: String) = {
+  override def findByPath(path: String) = IO {
     val file = new java.io.File(fileSystemPath(path))
     if (file.exists() && file.isFile && file.canRead) {
       val in = new FileInputStream(file)
