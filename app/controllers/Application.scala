@@ -68,11 +68,12 @@ object Application extends Controller {
 
     lazy val okResult: IO[Option[Result]] = for {
       fileOpt <- fileRepository.findByPath(path)
-      templateFile <- fileOpt
     } yield {
-        val processedTemplate = run(templateFile)
-        fileRepository.create(processedTemplate)
-        toOk(processedTemplate)
+        fileOpt.map { templateFile =>
+          val processedTemplate = run(templateFile)
+          fileRepository.create(processedTemplate)
+          toOk(processedTemplate)
+        }
       }
 
     okResult
