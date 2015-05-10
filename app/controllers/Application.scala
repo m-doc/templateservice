@@ -13,11 +13,14 @@ import play.api.mvc.{Action, _}
 import repositories.RepositoryFactory
 
 import scalaz.effect.IO
+import scalaz._
+import Scalaz._
 
 
 object Application extends Controller {
 
   def fileRepository = RepositoryResolver.fileRepository
+
   val templateEngine = new TemplateEngine {
     allowCaching = false
     allowReload = false
@@ -37,14 +40,14 @@ object Application extends Controller {
     lazy val parseAttributesFromRequest: (Request[JsValue]) => Map[String, String] =
       (request) => {
         lazy val attributesOption = request.body match {
-        case JsObject(content) => Some(content.toMap)
-        case _ => None
+          case JsObject(content) => Some(content.toMap)
+          case _ => None
+        }
+        val result = for {
+          attributes <- attributesOption
+        } yield attributes.mapValues(_.asOpt[String].get)
+        result.getOrElse(Map.empty[String, String])
       }
-      val result = for {
-        attributes <- attributesOption
-      } yield attributes.mapValues(_.asOpt[String].get)
-      result.getOrElse(Map.empty[String, String])
-    }
 
     lazy val processTemplate: (PersistentFile) => (Map[String, String]) => String =
       (templateFile) => (attr) => templateEngine.layout(
@@ -52,10 +55,10 @@ object Application extends Controller {
 
     lazy val toOutFile: (String) => PersistentFile =
       (processedTemplate) => {
-      val path = PersistentFilePath(UUID.randomUUID().toString.replace("-", "") + fileType.map("."+_).getOrElse(""))
+        val path = PersistentFilePath(UUID.randomUUID().toString.replace("-", "") + fileType.map("." + _).getOrElse(""))
         val content = processedTemplate.getBytes(Charset.forName("UTF-8"))
         PersistentFile(path, content)
-    }
+      }
 
     def toOk: (PersistentFile) => Result =
       (outFile) => Ok(outFile.path.path)
@@ -66,19 +69,18 @@ object Application extends Controller {
         .andThen(toOutFile)
         .apply(req)
 
-    lazy val okResult: IO[Option[Result]] = for {
-      fileOpt <- fileRepository.findByPath(path)
-    } yield {
-        fileOpt.map { templateFile =>
-          val processedTemplate = run(templateFile)
-          fileRepository.create(processedTemplate)
-          toOk(processedTemplate)
-        }
-      }
+    def persistFile(file: PersistentFile): IO[PersistentFile] = { fileRepository.create(file).map(_ => file) }
+    def persistOptionFile(option: Option[PersistentFile]): IO[Option[PersistentFile]] = { option.map(persistFile(_)).sequence[IO, PersistentFile] }
 
-    okResult
-      .map(_.getOrElse(NotFound))
-      .unsafePerformIO()
+    val template: IO[Option[PersistentFile]] = fileRepository.findByPath(path)
+    val processedTemplate: IO[Option[PersistentFile]] = template.map(option => option.map(run(_)))
+    val persistedProcessedTemplate: IO[Option[PersistentFile]] =
+      processedTemplate.flatMap(persistOptionFile(_))
+
+    val result: IO[Option[Result]] = persistedProcessedTemplate.map(option => option.map(toOk(_)))
+
+    result.map(_.getOrElse(NotFound)).unsafePerformIO();
+
   }
 }
 
