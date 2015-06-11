@@ -13,6 +13,7 @@ import play.api.mvc.{Action, _}
 import repositories.RepositoryFactory
 
 import scalaz.effect.IO
+import scalaz.Scalaz._
 
 
 object Application extends Controller {
@@ -66,17 +67,15 @@ object Application extends Controller {
         .andThen(toOutFile)
         .apply(req)
 
-    lazy val okResult: IO[Option[Result]] = for {
-      fileOpt <- fileRepository.findByPath(path)
-    } yield {
-        fileOpt.map { templateFile =>
-          val processedTemplate = run(templateFile)
-          fileRepository.create(processedTemplate)
-          toOk(processedTemplate)
-        }
-      }
+    lazy val result: IO[Option[Result]] = fileRepository.findByPath(path).flatMap{ fileOpt =>
+      val processedTemplateOpt = fileOpt.map(run(_))
+      val unit: Option[IO[Unit]] = processedTemplateOpt.map(fileRepository.create(_))
+      val io: IO[Option[Unit]] = unit.sequence[IO, Unit]
+      val result: IO[Option[PersistentFile]] = io.map(opt => opt.flatMap(_ => processedTemplateOpt))
+      result.map(opt => opt.map(toOk(_)))
+    }
 
-    okResult
+    result
       .map(_.getOrElse(NotFound))
       .unsafePerformIO()
   }

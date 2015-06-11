@@ -21,7 +21,7 @@ trait ApplicationSpec extends PlaySpecification {
 
   "Application" should {
 
-    "send a file with relative path denoted by the request path" in new WithApplication {
+    "send a file with relative path denoted by the request path" in new WithApplication(FakeApplication(additionalConfiguration = Map("use.db" -> useDb))) {
       val filePath = createTestFile
       val result = route(FakeRequest(GET, filePath)).get
       status(result) must beEqualTo(OK)
@@ -33,7 +33,7 @@ trait ApplicationSpec extends PlaySpecification {
       status(result) must beEqualTo(NOT_FOUND)
     }
 
-    "write a new file while processing a template" in new WithApplication {
+    "write a new file while processing a template" in new WithApplication(FakeApplication(additionalConfiguration = Map("use.db" -> useDb))) {
       val filePath = createTestFile
       val requestProcessTemplate = FakeRequest(POST, filePath+"?fileType=html")
         .withJsonBody(Json.parse("""{ "name" : "World"}"""))

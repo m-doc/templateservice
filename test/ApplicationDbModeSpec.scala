@@ -10,7 +10,9 @@ class ApplicationDbModeSpec extends ApplicationSpec {
 
   def createTestFile(implicit app: Application) = withTransaction { implicit connection =>
     val _fileName = fileName
-    RepositoryFactory.persistentFileDbRepository.create(PersistentFile(PersistentFilePath(_fileName), fileContent))
+    RepositoryFactory.persistentFileDbRepository
+      .create(PersistentFile(PersistentFilePath(_fileName), fileContent))
+      .unsafePerformIO()
     filePath(_fileName)
   }
 
