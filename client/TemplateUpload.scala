@@ -1,9 +1,8 @@
 package example
 
 import scala.scalajs.js
-import org.scalajs.dom
+import org.scalajs.jquery.jQuery
 
-object ScalaJSExample extends js.JSApp {
+object TemplateUpload extends js.JSApp {
   def main(): Unit = {
-  }
 }

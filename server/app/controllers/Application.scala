@@ -24,6 +24,10 @@ object Application extends Controller {
     allowReload = false
   }
 
+  def index = Action {
+    Ok(views.html.index())
+  }
+
   def getFile(path: String) = Action {
     Logger.trace(s"getFile(path=$path)")
     (for {

@@ -2,10 +2,13 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-# Home page
+# Map static resources from the /public folder to the /assets URL path
+GET        /assets/*file          controllers.Assets.at(path="/public", file)
 
+# Home page
+GET         /templates            controllers.Application.index
+
+# REST-JSON
 POST        /*path                controllers.Application.processTemplate(path: String, fileType: Option[String])
 GET         /*path                controllers.Application.getFile(path: String)
 
-# Map static resources from the /public folder to the /assets URL path
-GET        /assets/*file          controllers.Assets.at(path="/public", file)

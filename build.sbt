@@ -17,8 +17,8 @@ lazy val server = (project in file("server")).settings(
     cache,
     "org.scalatra.scalate" %% "scalate-core" % "1.7.1",
     "org.scalaz" %% "scalaz-effect" % "7.0.6",
-    "com.vmunier" %% "play-scalajs-scripts" % "0.2.2",
-    "org.webjars" % "jquery" % "1.11.1")
+    "com.vmunier" %% "play-scalajs-scripts" % "0.2.2"
+    )
   )
   .enablePlugins(PlayScala).
   aggregate(clients.map(projectToRef): _*).
@@ -30,7 +30,7 @@ lazy val client = (project in file("client")).settings(
   persistLauncher in Test := false,
   sourceMapsDirectories += sharedJs.base / "..",
   libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-dom" % "0.8.0"
+    "be.doeraene" %%% "scalajs-jquery" % "0.8.0"
   )
 ).enablePlugins(ScalaJSPlugin, ScalaJSPlay).
   dependsOn(sharedJs)
