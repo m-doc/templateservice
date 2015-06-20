@@ -12,6 +12,7 @@ import play.api.libs.json._
 import play.api.mvc.{Action, _}
 import repositories.RepositoryFactory
 
+import scalaz._
 import scalaz.effect.IO
 import scalaz.Scalaz._
 
@@ -19,10 +20,7 @@ import scalaz.Scalaz._
 object Application extends Controller {
 
   def fileRepository = RepositoryResolver.fileRepository
-  val templateEngine = new TemplateEngine {
-    allowCaching = false
-    allowReload = false
-  }
+
 
   def getFile(path: String) = Action {
     Logger.trace(s"getFile(path=$path)")
@@ -35,34 +33,36 @@ object Application extends Controller {
   }
 
   def processTemplate(path: String, fileType: Option[String]) = Action(parse.json(100000)) { req =>
-    lazy val parseAttributesFromRequest: (Request[JsValue]) => Map[String, String] =
-      (request) => {
-        lazy val attributesOption = request.body match {
-        case JsObject(content) => Some(content.toMap)
-        case _ => None
-      }
-      val result = for {
-        attributes <- attributesOption
-      } yield attributes.mapValues(_.asOpt[String].get)
-      result.getOrElse(Map.empty[String, String])
+    type RequestBody = Map[String, String]
+    lazy val parseRequest = Reader[Request[JsValue], RequestBody] {
+        (request) => {
+          lazy val attributesOption = request.body match {
+            case JsObject(content) => Some(content.toMap)
+            case _ => None
+          }
+          val result = attributesOption.map(attributes => attributes.mapValues(_.asOpt[String].get))
+          result.getOrElse(Map.empty[String, String])
+        }
     }
-
-    lazy val processTemplate: (PersistentFile) => (Map[String, String]) => String =
-      (templateFile) => (attr) => templateEngine.layout(
-        new StringTemplateSource(templateFile.path.path, new String(templateFile.content)), attr)
-
-    lazy val toOutFile: (String) => PersistentFile =
-      (processedTemplate) => {
-      val path = PersistentFilePath(UUID.randomUUID().toString.replace("-", "") + fileType.map("."+_).getOrElse(""))
+    lazy val processTemplate: (PersistentFile) => Reader[Map[String, String], String] = (templateFile) =>
+      Reader {
+        (attr) => templateEngine.layout(
+          new StringTemplateSource(templateFile.path.path, new String(templateFile.content)), attr)
+      }
+    lazy val toOutFile: Reader[String, PersistentFile] = Reader {
+      processedTemplate => {
+        val path = PersistentFilePath(UUID.randomUUID().toString.replace("-", "") + fileType.map("." + _).getOrElse(""))
         val content = processedTemplate.getBytes(Charset.forName("UTF-8"))
         PersistentFile(path, content)
+        }
     }
 
-    def toOk: (PersistentFile) => Result =
+    lazy val toOk: Reader[PersistentFile, Result] = Reader {
       (outFile) => Ok(outFile.path.path)
+    }
 
     def run(templateFile: PersistentFile): PersistentFile =
-      parseAttributesFromRequest
+      parseRequest
         .andThen(processTemplate.apply(templateFile))
         .andThen(toOutFile)
         .apply(req)
