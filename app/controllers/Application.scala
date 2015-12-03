@@ -18,7 +18,12 @@ object Application extends Controller {
   }
 
   def processTemplate(id: String) = Action { req =>
-    lazy val variables: Writer[Vector[String], Map[String, String]] = {
+    type TemplateVars = Map[String, String]
+    type Content = String
+    type Logs = Vector[String]
+    type LogsWith[A] = Writer[Logs, A]
+
+    lazy val variables: LogsWith[TemplateVars] = {
       val attributes = req.body.asJson match {
         case Some(JsObject(content)) =>
           val contentMap = content.toMap
@@ -32,7 +37,7 @@ object Application extends Controller {
       }
     }
 
-    def template(path: String)(vars: Map[String, String]): Task[Writer[Vector[String], Option[String]]] = Task {
+    def template(path: String)(vars: TemplateVars): Task[LogsWith[Option[Content]]] = Task {
       try {
         templateEngine.layout(path, vars).some.set(Vector.empty)
       }
@@ -44,7 +49,7 @@ object Application extends Controller {
 
     lazy val path = basePath + id
 
-    lazy val processedTemplate: Task[Writer[Vector[String], Result]] =
+    lazy val processedTemplate: Task[LogsWith[Result]] =
       variables
         .map(vars => template(path)(vars))
         .sequence
