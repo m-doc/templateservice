@@ -2,9 +2,12 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
-# Home page
+# Views
+GET         /admin                controllers.Template.adminView()
 
-POST        /*path               controllers.Template.process(path)
+# API
+POST        /*path                controllers.Template.process(path)
 
 # Map static resources from the /public folder to the /assets URL path
-GET         /assets/*file        controllers.Assets.at(path="/public", file)
+GET         /assets/*file         controllers.Assets.at(path="/public", file)
+GET         /webjars/*file        controllers.WebJarAssets.at(file)

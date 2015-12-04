@@ -8,10 +8,12 @@ libraryDependencies ++= Seq(
   cache,
   "org.scalatra.scalate" %% "scalate-core" % "1.7.1",
   "org.scalaz" %% "scalaz-effect" % "7.0.6",
-  "org.scalaz" %% "scalaz-concurrent" % "7.0.6"
+  "org.scalaz" %% "scalaz-concurrent" % "7.0.6",
+  "org.webjars" %% "webjars-play" % "2.3.0-3",
+  "org.webjars" % "react" % "0.13.3"
 )
 
 javaOptions in Test += "-Dconfig.file=test/template/test.conf"
 
 lazy val root = (project in file("."))
-  .enablePlugins(PlayScala)
+  .enablePlugins(PlayScala, SbtWeb)

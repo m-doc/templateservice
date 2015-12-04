@@ -17,6 +17,10 @@ object Template extends Controller {
     templatesDir + (if (templatesDir.endsWith("/")) "" else "/")
   }
 
+  def adminView() = Action {
+    Ok(views.html.template_admin())
+  }
+
   def process(id: String) = Action { req =>
     type TemplateVars = Map[String, String]
     type Content = String
