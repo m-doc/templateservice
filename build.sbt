@@ -11,7 +11,7 @@ libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-concurrent" % "7.0.6"
 )
 
+javaOptions in Test += "-Dconfig.file=test/template/test.conf"
 
-
-lazy val root = (project in file(".")).enablePlugins(PlayScala)
-
+lazy val root = (project in file("."))
+  .enablePlugins(PlayScala)

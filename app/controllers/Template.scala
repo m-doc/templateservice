@@ -9,7 +9,7 @@ import scalaz.Scalaz._
 import scalaz.concurrent.Task
 import scalaz.{Writer, _}
 
-object Application extends Controller {
+object Template extends Controller {
 
   val templateEngine = new TemplateEngine
   val basePath = {
@@ -17,7 +17,7 @@ object Application extends Controller {
     templatesDir + (if (templatesDir.endsWith("/")) "" else "/")
   }
 
-  def processTemplate(id: String) = Action { req =>
+  def process(id: String) = Action { req =>
     type TemplateVars = Map[String, String]
     type Content = String
     type Logs = Vector[String]
