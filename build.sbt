@@ -10,7 +10,8 @@ libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-effect" % "7.0.6",
   "org.scalaz" %% "scalaz-concurrent" % "7.0.6",
   "org.webjars" %% "webjars-play" % "2.3.0-3",
-  "org.webjars" % "react" % "0.13.3"
+  "org.webjars.npm" % "react" % "0.14.3",
+  "org.webjars.npm" % "react-dom" % "0.14.3"
 )
 
 javaOptions in Test += "-Dconfig.file=test/template/test.conf"
