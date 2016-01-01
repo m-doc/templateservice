@@ -1,6 +1,11 @@
 package controllers
 
 import io.circe.syntax._
+import io.circe._
+import io.circe.generic.auto._
+import io.circe.parse._
+import io.circe.syntax._
+
 import org.fusesource.scalate._
 import play.Logger
 import play.api.libs.json._
