@@ -10,9 +10,24 @@ var TemplateFile = React.createClass({
 });
 
 var TemplateFileList = React.createClass({
+    getInitialState: function () {
+        return {data: []};
+    },
+    componentDidMount: function () {
+        $.ajax({
+            url: this.props.url,
+            dataType: 'json',
+            cache: false,
+            success: function (data) {
+                this.setState({data: data});
+            }.bind(this),
+            error: function (xhr, status, err) {
+                console.error(this.props.url, status, err.toString());
+            }.bind(this)
+        });
+    },
     render: function () {
-
-        var templates = this.props.data.map(function (template) {
+        var templates = this.state.data.map(function (template) {
             return <TemplateFile name={template.name} sizeInBytes={template.sizeInBytes}/>;
         });
         return (
@@ -23,12 +38,7 @@ var TemplateFileList = React.createClass({
     }
 });
 
-var data = [
-    {"name": "template1", "sizeInBytes": 19345},
-    {"name": "template2", "sizeInBytes": 9876}
-];
-
 ReactDOM.render(
-    <TemplateFileList data={data}/>,
+    <TemplateFileList url="/template-views"/>,
     document.getElementById("templateFileList")
 );

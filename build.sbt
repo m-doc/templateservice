@@ -11,8 +11,11 @@ libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-concurrent" % "7.0.6",
   "org.webjars" %% "webjars-play" % "2.3.0-3",
   "org.webjars.npm" % "react" % "0.14.3",
-  "org.webjars.npm" % "react-dom" % "0.14.3"
-)
+  "org.webjars.npm" % "react-dom" % "0.14.3",
+  "org.webjars.npm" % "jquery" % "2.1.4",
+  "io.circe" %% "circe-core" % "0.2.1",
+  "io.circe" %% "circe-generic" % "0.2.1",
+  "io.circe" %% "circe-parse" % "0.2.1")
 
 javaOptions in Test += "-Dconfig.file=test/template/test.conf"
 

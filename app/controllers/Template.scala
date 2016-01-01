@@ -1,5 +1,6 @@
 package controllers
 
+import io.circe.syntax._
 import org.fusesource.scalate._
 import play.Logger
 import play.api.libs.json._
@@ -19,6 +20,16 @@ object Template extends Controller {
 
   def adminView() = Action {
     Ok(views.html.template_admin())
+  }
+
+  def templateViews() = Action {
+    case class TemplateView(name: String, sizeInBytes: Long)
+    Ok(
+      List(
+        TemplateView("Testtemplate", 1000L),
+        TemplateView("Testtemplate2", 255L)
+      ).asJson.noSpaces
+    )
   }
 
   def process(id: String) = Action { req =>
