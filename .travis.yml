@@ -1,9 +1,10 @@
 language: scala
 scala:
-- 2.11.6
+- 2.11.7
 jdk:
 - openjdk7
 - oraclejdk7
 - oraclejdk8
-script: sbt test
-
+script: sbt coverage test
+after_success:
+- bash <(curl -s https://codecov.io/bash)
