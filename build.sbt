@@ -15,7 +15,9 @@ libraryDependencies ++= Seq(
   "org.webjars.npm" % "jquery" % "2.1.4",
   "io.circe" %% "circe-core" % "0.2.1",
   "io.circe" %% "circe-generic" % "0.2.1",
-  "io.circe" %% "circe-parse" % "0.2.1")
+  "io.circe" %% "circe-parse" % "0.2.1",
+  "com.lihaoyi" %% "ammonite-ops" % "0.5.2"
+)
 
 javaOptions in Test += "-Dconfig.file=test/template/test.conf"
 
