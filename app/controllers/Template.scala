@@ -1,11 +1,6 @@
 package controllers
 
 import ammonite.ops
-import io.circe.syntax._
-import io.circe._
-import io.circe.generic.auto._
-import io.circe.parse._
-import io.circe.syntax._
 
 import ammonite.ops._
 
@@ -18,7 +13,13 @@ import scalaz.Scalaz._
 import scalaz.concurrent.Task
 import scalaz.{Writer, _}
 
+import play.api.libs.json._
+
 object Template extends Controller {
+
+  case class TemplateView(name: String, sizeInBytes: Long)
+
+  implicit val templateViewFormat = Json.format[TemplateView]
 
   val templateEngine = new TemplateEngine
   val basePath = {
@@ -31,14 +32,10 @@ object Template extends Controller {
   }
 
   def templateViews() = Action {
-    case class TemplateView(name: String, sizeInBytes: Long)
-
-    val templateFiles = ls ! root / basePath
+    val templateFiles = ls ! Path(basePath)
     val result = templateFiles.map(file => TemplateView(file.name, file.size))
 
-    Ok(
-      result.asJson.noSpaces
-    )
+    Ok(Json.toJson(result))
   }
 
   def process(id: String) = Action { req =>
