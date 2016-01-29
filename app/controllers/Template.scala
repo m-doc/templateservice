@@ -21,6 +21,7 @@ object Template extends Controller {
 
   implicit val templateViewFormat = Json.format[TemplateView]
 
+  val supportedFormats = List("mustache")
   val templateEngine = new TemplateEngine
   val basePath = {
     val templatesDir = play.Play.application.configuration.getString("templates.dir")
@@ -32,7 +33,7 @@ object Template extends Controller {
   }
 
   def templateViews() = Action {
-    val templateFiles = ls ! Path(basePath)
+    val templateFiles = (ls ! Path(basePath)).filter(p => supportedFormats.exists(ext => p.name.endsWith("." + ext)))
     val result = templateFiles.map(file => TemplateView(file.name, file.size))
 
     Ok(Json.toJson(result))
