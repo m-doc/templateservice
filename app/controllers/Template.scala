@@ -42,8 +42,8 @@ object Template extends Controller {
         templateEngine.layout(path, vars).some.set(Vector.empty)
       }
       catch {
-        case _: ResourceNotFoundException => None.set(Vector(s"template $id not found"))
-        case e: TemplateException => None.set(Vector(s"invalid template: ${e.getMessage}"))
+        case _: ResourceNotFoundException => none[Content].set(Vector(s"template $id not found"))
+        case e: TemplateException => none[Content].set(Vector(s"invalid template: ${e.getMessage}"))
       }
     }
 
