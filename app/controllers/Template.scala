@@ -33,10 +33,12 @@ object Template extends Controller {
   }
 
   def templateViews() = Action {
-    val templateFiles = (ls ! Path(basePath)).filter(p => supportedFormats.exists(ext => p.name.endsWith("." + ext)))
-    val result = templateFiles.map(file => TemplateView(file.name, file.size))
+    val templateFiles = (ls ! Path(basePath))
+      .filter(p => supportedFormats.exists(ext => p.name.endsWith("." + ext)))
+      .sortBy(_.name)
+      .map(file => TemplateView(file.name, file.size))
 
-    Ok(Json.toJson(result))
+    Ok(Json.toJson(templateFiles))
   }
 
   def process(id: String) = Action { req =>
