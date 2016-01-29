@@ -3,13 +3,13 @@
 # ~~~~
 
 # Views
-GET         /admin                 controllers.Template.adminView()
+GET         /admin                     controllers.Template.adminView()
 
-GET         /template-views        controllers.Template.templateViews()
+GET         /api/template-views        controllers.Template.templateViews()
 
 # API
-POST        /*path                 controllers.Template.process(path)
+POST        /api/process/*path         controllers.Template.process(path)
 
 # Map static resources from the /public folder to the /assets URL path
-GET         /assets/*file          controllers.Assets.at(path="/public", file)
-GET         /webjars/*file         controllers.WebJarAssets.at(file)
+GET         /assets/*file              controllers.Assets.at(path="/public", file)
+GET         /webjars/*file             controllers.WebJarAssets.at(file)
