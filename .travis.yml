@@ -5,6 +5,11 @@ jdk:
 - openjdk7
 - oraclejdk7
 - oraclejdk8
+sudo: false
+cache:
+  directories:
+  - "$HOME/.ivy2/cache"
+  - "$HOME/.sbt/boot/"
 script: sbt coverage test
 after_success:
 - bash <(curl -s https://codecov.io/bash)
