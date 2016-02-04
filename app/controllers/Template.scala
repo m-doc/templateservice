@@ -1,5 +1,9 @@
 package controllers
 
+import ammonite.ops
+
+import ammonite.ops._
+
 import org.fusesource.scalate._
 import play.Logger
 import play.api.libs.json._
@@ -9,12 +13,36 @@ import scalaz.Scalaz._
 import scalaz.concurrent.Task
 import scalaz.{Writer, _}
 
+import play.api.libs.json._
+
 object Template extends Controller {
 
+  case class TemplateView(name: String, sizeInBytes: Long)
+
+  implicit val templateViewFormat = Json.format[TemplateView]
+
+  val supportedFormats = List("mustache")
   val templateEngine = new TemplateEngine
   val basePath = {
     val templatesDir = play.Play.application.configuration.getString("templates.dir")
     templatesDir + (if (templatesDir.endsWith("/")) "" else "/")
+  }
+
+  val absoluteBasePath =
+    if (basePath.startsWith("/")) Path(basePath)
+    else basePath.split("/").foldLeft(cwd)((z, ps) => z / ps)
+
+  def adminView() = Action {
+    Ok(views.html.template_admin())
+  }
+
+  def templateViews() = Action {
+    val templateFiles = (ls ! absoluteBasePath)
+      .filter(p => supportedFormats.exists(ext => p.name.endsWith("." + ext)))
+      .sortBy(_.name)
+      .map(file => TemplateView(file.name, file.size))
+
+    Ok(Json.toJson(templateFiles))
   }
 
   def process(id: String) = Action { req =>

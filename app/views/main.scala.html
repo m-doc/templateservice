@@ -1,0 +1,32 @@
+@(title: String)(content: Html)
+
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>@title</title>
+        <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.fullPath("jquery", "dist/jquery.min.js"))'></script>
+        <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.fullPath("react", "dist/react.min.js"))'></script>
+        <script type='text/javascript' src='@routes.WebJarAssets.at(WebJarAssets.fullPath("react-dom", "dist/react-dom.min.js"))'></script>
+        <link rel='stylesheet' href='@routes.Assets.at("pure-min-0.6.0.css")'>
+            <!--[if lte IE 8]>
+        <link rel='stylesheet' href='@routes.Assets.at("grids-responsive-old-ie-min-0.6.0.css")'>
+            <!--<![endif]-->
+            <!--[if gt IE 8]>
+        <link rel='stylesheet' href='@routes.Assets.at("grids-responsive-min-0.6.0.css")'>
+            <!--<![endif]-->
+            <!--[if !IE]>
+        <link rel='stylesheet' href='@routes.Assets.at("grids-responsive-min-0.6.0.css")'>
+            <!--<![endif]-->
+        <link rel='stylesheet' href='@routes.Assets.at("main.css")'>
+        <link rel='stylesheet' href='@routes.Assets.at("template_files.css")'>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+        <div id="header" class="header">
+            <img src='@routes.Assets.at("mdoc_templates_logo_lg.png")' class="logo"/>
+        </div>
+        <div id="content">@content</div>
+    </body>
+</html>
