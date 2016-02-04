@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
   "org.scalatra.scalate" %% "scalate-core" % "1.7.1",
   "org.scalaz" %% "scalaz-effect" % "7.1.6",
   "org.scalaz" %% "scalaz-concurrent" % "7.1.6",
-  "org.webjars" %% "webjars-play" % "2.3.0-3",
+  "org.webjars" %% "webjars-play" % "2.4.0-2",
   "org.webjars.npm" % "react" % "0.14.3",
   "org.webjars.npm" % "react-dom" % "0.14.3",
   "org.webjars.npm" % "jquery" % "2.1.4",
