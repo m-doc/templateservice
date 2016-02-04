@@ -2,7 +2,7 @@ package template
 
 import java.util.UUID
 
-import play.api.libs.json.{JsObject, JsString}
+import play.api.libs.json.{JsNumber, JsObject, JsString}
 import play.api.test.{PlaySpecification, _}
 
 object TemplateSpec extends PlaySpecification {
@@ -30,6 +30,14 @@ object TemplateSpec extends PlaySpecification {
       val Some(result) = route(FakeRequest(POST, "/api/process/test.mustache").withJsonBody(requestBody))
 
       contentAsString(result) must equalTo("Hello World!\n")
+    }
+
+    "list all available template-files" in new WithApplication(fakeApplication) {
+      val Some(result) = route(FakeRequest(GET, "/api/template-views"))
+      val jsonResult = contentAsJson(result)
+      jsonResult.\\("name") must have size 1
+      jsonResult.\\("name").head must equalTo(JsString("test.mustache"))
+      jsonResult.\\("sizeInBytes") must have size 1
     }
   }
 }

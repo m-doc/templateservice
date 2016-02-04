@@ -1,10 +1,10 @@
 var TemplateFile = React.createClass({
     render: function () {
         return (
-            <div class="templateFile">
-                <h4>{this.props.name}</h4>
-                {this.props.sizeInBytes}
-            </div>
+            <tr className="templateFile">
+                <td>{this.props.name}</td>
+                <td>{this.props.sizeInBytes} Bytes</td>
+            </tr>
         );
     }
 });
@@ -31,14 +31,24 @@ var TemplateFileList = React.createClass({
             return <TemplateFile name={template.name} sizeInBytes={template.sizeInBytes}/>;
         });
         return (
-            <div class="templateFileList">
-                {templates}
+            <div className="templateFileList">
+                <table className="pure-table pure-table-horizontal">
+                    <thead>
+                    <tr>
+                        <td>Name</td>
+                        <td>Dateigröße</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {templates}
+                    </tbody>
+                </table>
             </div>
         );
     }
 });
 
 ReactDOM.render(
-    <TemplateFileList url="/template-views"/>,
+    <TemplateFileList url="/api/template-views"/>,
     document.getElementById("templateFileList")
 );

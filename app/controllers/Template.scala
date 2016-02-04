@@ -28,12 +28,16 @@ object Template extends Controller {
     templatesDir + (if (templatesDir.endsWith("/")) "" else "/")
   }
 
+  val absoluteBasePath =
+    if (basePath.startsWith("/")) Path(basePath)
+    else basePath.split("/").foldLeft(cwd)((z, ps) => z / ps)
+
   def adminView() = Action {
     Ok(views.html.template_admin())
   }
 
   def templateViews() = Action {
-    val templateFiles = (ls ! Path(basePath))
+    val templateFiles = (ls ! absoluteBasePath)
       .filter(p => supportedFormats.exists(ext => p.name.endsWith("." + ext)))
       .sortBy(_.name)
       .map(file => TemplateView(file.name, file.size))
