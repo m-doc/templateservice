@@ -11,7 +11,7 @@ object TemplateSpec extends PlaySpecification {
 
   val testfile: String = "test.mustache"
 
-  "Template" should {
+  "Template processing" should {
 
     "return status OK if the template exists" in new WithApplication(fakeApplication) {
       val requestBody = JsObject(List(("name", JsString(UUID.randomUUID().toString))))
@@ -33,7 +33,9 @@ object TemplateSpec extends PlaySpecification {
 
       contentAsString(result) must equalTo("Hello World!\n")
     }
+  }
 
+  "Template templateViews" should {
     "list all available template-files" in new WithApplication(fakeApplication) {
       val Some(result) = route(FakeRequest(controllers.routes.Template.templateViews()))
       val jsonResult = contentAsJson(result)
@@ -41,7 +43,9 @@ object TemplateSpec extends PlaySpecification {
       jsonResult.\\("name").head must equalTo(JsString(testfile))
       jsonResult.\\("sizeInBytes") must have size 1
     }
+  }
 
+  "Template placeholders" should {
     "return status ok if template exists" in new WithApplication(fakeApplication) {
       val Some(result) = route(FakeRequest(controllers.routes.Template.placeholders(testfile)))
       status(result) must equalTo(OK)
