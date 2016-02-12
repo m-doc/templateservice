@@ -5,6 +5,7 @@ import ammonite.ops
 import ammonite.ops._
 
 import org.fusesource.scalate._
+import org.fusesource.scalate.mustache.{Variable, MustacheParser}
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
@@ -31,6 +32,20 @@ object Template extends Controller {
   val absoluteBasePath =
     if (basePath.startsWith("/")) Path(basePath)
     else basePath.split("/").foldLeft(cwd)((z, ps) => z / ps)
+
+  def placeholders(id: String) = Action { req =>
+    val path = (absoluteBasePath / id)
+    if (exists ! path) {
+      val templateContent = read ! path
+      val statements = new MustacheParser().parse(templateContent)
+      val variables = statements.flatMap(_ match {
+        case v: Variable => Some(v.name.value)
+        case _ => None
+      })
+      Ok(Json.toJson(variables))
+    }
+    else NotFound
+  }
 
   def adminView() = Action {
     Ok(views.html.template_admin())

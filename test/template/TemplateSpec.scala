@@ -2,7 +2,7 @@ package template
 
 import java.util.UUID
 
-import play.api.libs.json.{JsNumber, JsObject, JsString}
+import play.api.libs.json.{JsArray, JsNumber, JsObject, JsString}
 import play.api.test.{PlaySpecification, _}
 
 object TemplateSpec extends PlaySpecification {
@@ -38,6 +38,17 @@ object TemplateSpec extends PlaySpecification {
       jsonResult.\\("name") must have size 1
       jsonResult.\\("name").head must equalTo(JsString("test.mustache"))
       jsonResult.\\("sizeInBytes") must have size 1
+    }
+
+    "return status ok if template exists" in new WithApplication(fakeApplication) {
+      val Some(result) = route(FakeRequest(controllers.routes.Template.placeholders("test.mustache")))
+      status(result) must equalTo(OK)
+    }
+
+    "list all placeholders contained in a template" in new WithApplication(fakeApplication) {
+      val Some(result) = route(FakeRequest(controllers.routes.Template.placeholders("test.mustache")))
+      val jsonResult = contentAsJson(result)
+      jsonResult mustEqual JsArray(List(JsString("name")))
     }
   }
 }

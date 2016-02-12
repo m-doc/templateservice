@@ -7,6 +7,8 @@ GET         /admin                     controllers.Template.adminView()
 
 GET         /api/template-views        controllers.Template.templateViews()
 
+GET         /api/template-placeholders/*path        controllers.Template.placeholders(path)
+
 # API
 POST        /api/process/*path         controllers.Template.process(path)
 
