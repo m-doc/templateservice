@@ -9,44 +9,46 @@ object TemplateSpec extends PlaySpecification {
 
   val fakeApplication = FakeApplication()
 
+  val testfile: String = "test.mustache"
+
   "Template" should {
 
     "return status OK if the template exists" in new WithApplication(fakeApplication) {
       val requestBody = JsObject(List(("name", JsString(UUID.randomUUID().toString))))
-      val Some(result) = route(FakeRequest(POST, "/api/process/test.mustache").withJsonBody(requestBody))
+      val Some(result) = route(FakeRequest(controllers.routes.Template.process(testfile)).withJsonBody(requestBody))
 
       status(result) must equalTo(OK)
     }
 
     "return status NOT_FOUND if no valid template with requested name exists" in new WithApplication(fakeApplication) {
       val requestBody = JsObject(List(("name", JsString(UUID.randomUUID().toString))))
-      val Some(result) = route(FakeRequest(POST, "/api/process/notexists.mustache").withJsonBody(requestBody))
+      val Some(result) = route(FakeRequest(controllers.routes.Template.process("notexists.mustache")).withJsonBody(requestBody))
 
       status(result) must equalTo(NOT_FOUND)
     }
 
     "process the requested template using the provided json - attributes" in new WithApplication(fakeApplication) {
       val requestBody = JsObject(List(("name", JsString("World"))))
-      val Some(result) = route(FakeRequest(POST, "/api/process/test.mustache").withJsonBody(requestBody))
+      val Some(result) = route(FakeRequest(controllers.routes.Template.process(testfile)).withJsonBody(requestBody))
 
       contentAsString(result) must equalTo("Hello World!\n")
     }
 
     "list all available template-files" in new WithApplication(fakeApplication) {
-      val Some(result) = route(FakeRequest(GET, "/api/template-views"))
+      val Some(result) = route(FakeRequest(controllers.routes.Template.templateViews()))
       val jsonResult = contentAsJson(result)
       jsonResult.\\("name") must have size 1
-      jsonResult.\\("name").head must equalTo(JsString("test.mustache"))
+      jsonResult.\\("name").head must equalTo(JsString(testfile))
       jsonResult.\\("sizeInBytes") must have size 1
     }
 
     "return status ok if template exists" in new WithApplication(fakeApplication) {
-      val Some(result) = route(FakeRequest(controllers.routes.Template.placeholders("test.mustache")))
+      val Some(result) = route(FakeRequest(controllers.routes.Template.placeholders(testfile)))
       status(result) must equalTo(OK)
     }
 
     "list all placeholders contained in a template" in new WithApplication(fakeApplication) {
-      val Some(result) = route(FakeRequest(controllers.routes.Template.placeholders("test.mustache")))
+      val Some(result) = route(FakeRequest(controllers.routes.Template.placeholders(testfile)))
       val jsonResult = contentAsJson(result)
       jsonResult mustEqual JsArray(List(JsString("name")))
     }
