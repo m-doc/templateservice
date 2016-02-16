@@ -102,4 +102,8 @@ object Template extends Controller {
         result
     }
   }
+
+  def version = Action {
+    Ok(org.mdoc.templates.BuildInfo.version)
+  }
 }
