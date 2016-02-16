@@ -1,8 +1,6 @@
+enablePlugins(MdocPlugin)
+
 name := "templates"
-
-version := "1.0-SNAPSHOT"
-
-scalaVersion := "2.11.7"
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 

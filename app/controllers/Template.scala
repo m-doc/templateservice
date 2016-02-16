@@ -1,20 +1,15 @@
 package controllers
 
 import ammonite.ops
-
 import ammonite.ops._
-
 import org.fusesource.scalate._
-import org.fusesource.scalate.mustache.{Variable, MustacheParser}
+import org.fusesource.scalate.mustache.{ MustacheParser, Variable }
 import play.Logger
 import play.api.libs.json._
-import play.api.mvc.{Action, _}
-
+import play.api.mvc.{ Action, _ }
+import scalaz._
 import scalaz.Scalaz._
 import scalaz.concurrent.Task
-import scalaz.{Writer, _}
-
-import play.api.libs.json._
 
 object Template extends Controller {
 
@@ -43,8 +38,7 @@ object Template extends Controller {
         case _ => None
       })
       Ok(Json.toJson(variables))
-    }
-    else NotFound
+    } else NotFound
   }
 
   def adminView() = Action {
@@ -83,8 +77,7 @@ object Template extends Controller {
     def template(path: String)(vars: TemplateVars): Task[LogsWith[Option[Content]]] = Task {
       try {
         templateEngine.layout(path, vars).some.set(Vector.empty)
-      }
-      catch {
+      } catch {
         case _: ResourceNotFoundException => none[Content].set(Vector(s"template $id not found"))
         case e: TemplateException => none[Content].set(Vector(s"invalid template: ${e.getMessage}"))
       }
@@ -100,7 +93,8 @@ object Template extends Controller {
         .map(_.map(_.map(Ok(_)).getOrElse(NotFound)))
 
     processedTemplate.attemptRun match {
-      case -\/(error) => Logger.error("unexpected error:", error); InternalServerError(error.getMessage)
+      case -\/(error) =>
+        Logger.error("unexpected error:", error); InternalServerError(error.getMessage)
       case \/-(success) =>
         val (logs, result) = success.run
         val logMsgs = logs.foldLeft(s"processTemplate $id")((a, b) => a + "\n" + b)

@@ -12,12 +12,12 @@ cache:
   - "$HOME/.sbt/boot/"
 
 script:
-- sbt ++$TRAVIS_SCALA_VERSION coverage test
+- sbt ++$TRAVIS_SCALA_VERSION mdocValidate
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 
 before_deploy:
-- sbt ++$TRAVIS_SCALA_VERSION clean makeBintrayDeploymentDescriptorDeb debian:packageBin
+- sbt ++$TRAVIS_SCALA_VERSION mdocPublishDeb
 deploy:
   provider: bintray
   file: deploy.json
