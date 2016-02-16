@@ -22,9 +22,9 @@ deploy:
   provider: bintray
   file: deploy.json
   user:
-    secure: W79fU4GPXMuhDhYhoZfHgcss84MDH5vIyaMEBkQwAhUgyC//PX4ACcSdNesR/m8EuHF/j7IMRmKNRJY8ecm4RGRWGiHLvjjrZb1FOr+q+n98vjl+EjQEcfDioA2qXBZ/ilsnoG9ALsmh4mxk+EV7fPYjfmulC4oHVQt4+NCoBCo=
+    secure: axr0zWQXpWolI84U4+ZmVIUJ/D44sfEhrAVPltUqe95EfEZsXjq6WNvEx2vzq50MjeWbgrwz4WX7QLqFpK9AdGW79LyFRTpEfa3RvE0+44YTVc0HDKN8cVfjG7tIAXpye/caoQ0OIRJY4SD+4OgNgO6SmMCUxpyY7BB02uu9uAQ=
   key:
-    secure: NLGSbwIiycOymEWE7dsGXe4KMQrgky2wfC/9tBcpODd/5Xyq1hZoZNeV7/8cNAGxgKlEJD+hkhozIJOUVn78qjuPHkmgq3KFgnAClfhfNUdlXLxBlr9jwkLl/T81aMbZ2NsL6h4L1GWNtWqjT9LNXhVWi8l0i4GdigSzYci85kg=
+    secure: NOEA682v6jnL5reIFf5nfD/bnLIG4lAruc0uI+JNljHLxZs3Y8G5g+UtsZXzlfgQDPatCfnpz5KprP9mjH34DlAf2UxXXXMLw5IfWQ87Wpwb4IJjN25UO0TgM4rAbLVGrajIYgovlh6bDJwYQQlHrTc5fWeIa6JO4gffuekN/ic=
 after_deploy:
 - cd scripts && sh cloud-install.sh
 
@@ -34,7 +34,7 @@ before_install:
 
 env:
   global:
-    secure: BRjB7V7WXzUnBzwqxr46zKBoJNSRvrb97wflgH1768p7G+Cv7lcGQiJ81f0xB/iSQNdJa7KlOYAn8Xjr4eADC5ygxHnzfTXBaKaoOcFh/JrFVXCRsqZNDQ1SI0UEljBGPC92U97Xk9YnBfnUKlet/y7q+N6i2DBmJ6BGqrz2Mwc=
+    secure: Y0RGqaShgPBUZNREz70IWikUkR2LNkBaCUtVJ/6Q0+whd2lsDHqrdW0ncI7q/Mq3GKcPVwB3ezbiDO3m9ZMFiTlqnv0bojtNZM4ul2WIFxeVGRSh2k+lFE8d6GDgweZ1s4W1IuSw/gkUJYZcXs/ygfTG9JonVTZN9e60By5SSvA=
 
 notifications:
   webhooks:
