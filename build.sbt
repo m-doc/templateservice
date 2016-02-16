@@ -28,3 +28,6 @@ javaOptions in Test += "-Dconfig.file=test/template/test.conf"
 
 lazy val root = (project in file("."))
   .enablePlugins(PlayScala, SbtWeb)
+
+serverLoading in Debian := com.typesafe.sbt.packager.archetypes.ServerLoader.SystemV
+mdocValidateCommands += "debian:packageBin"
