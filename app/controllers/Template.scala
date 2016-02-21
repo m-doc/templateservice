@@ -5,7 +5,7 @@ import ammonite.ops
 import ammonite.ops._
 
 import org.fusesource.scalate._
-import org.fusesource.scalate.mustache.{Variable, MustacheParser}
+import org.fusesource.scalate.mustache.{Statement, Variable, MustacheParser}
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
@@ -13,6 +13,7 @@ import play.api.mvc.{Action, _}
 import scalaz.Scalaz._
 import scalaz.concurrent.Task
 import scalaz.{Writer, _}
+import scalaz.{Free, Id, ~>, Coyoneda}
 
 import play.api.libs.json._
 
@@ -34,17 +35,56 @@ object Template extends Controller {
     else basePath.split("/").foldLeft(cwd)((z, ps) => z / ps)
 
   def placeholders(id: String) = Action { req =>
-    val path = (absoluteBasePath / id)
-    if (exists ! path) {
-      val templateContent = read ! path
-      val statements = new MustacheParser().parse(templateContent)
-      val variables = statements.flatMap(_ match {
-        case v: Variable => Some(v.name.value)
-        case _ => None
-      })
-      Ok(Json.toJson(variables))
+    sealed trait TemplateOps[+A]
+    final case class CheckIfTemplateExists(path: Path) extends TemplateOps[Option[Path]]
+    final case class ReadTemplateContent(path: Option[Path]) extends TemplateOps[Option[String]]
+
+    type TemplateOpsCoyoneda[A] = Coyoneda[TemplateOps, A]
+
+    val checkIfTemplateExists = (path: Path) => Free.liftFC(CheckIfTemplateExists(path))
+
+    val readContent = (path: Option[Path]) => Free.liftFC(ReadTemplateContent(path))
+
+    val parseStatements = (content: Option[String]) =>
+      content.map(new MustacheParser().parse(_))
+
+    val filterVariables = (stmnts: Option[List[Statement]]) => stmnts.map(_.flatMap(_ match {
+      case v: Variable => Some(v.name.value)
+      case _ => None
+    }))
+
+    val program = Reader(checkIfTemplateExists).map(
+      _
+        .flatMap(readContent)
+        .map(parseStatements)
+        .map(filterVariables)
+    )
+
+    val result = program.map(
+      _
+        .map(maybeVariables =>
+          maybeVariables.map(variables => Ok(Json.toJson(variables)))
+            .getOrElse(NotFound)
+        )
+    )
+
+    val taskInterpreter: TemplateOps ~> Task = new (TemplateOps ~> Task) {
+      override def apply[A](op: TemplateOps[A]): Task[A] = op match {
+        case CheckIfTemplateExists(path) => checkIfTemplateExistsTask(path)
+        case ReadTemplateContent(maybePath) => readContentTask(maybePath)
+      }
+
+      def checkIfTemplateExistsTask(path: Path) = Task {
+        if (exists ! path) Some(path) else None
+      }
+
+      def readContentTask(maybePath: Option[Path]) = Task {
+        maybePath.map(read ! _)
+      }
     }
-    else NotFound
+
+    val task = Free.runFC(result.run(absoluteBasePath / id))(taskInterpreter)
+    task.run
   }
 
   def adminView() = Action {
