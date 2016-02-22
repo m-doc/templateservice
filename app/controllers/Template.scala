@@ -9,6 +9,10 @@ import org.fusesource.scalate.mustache.{Statement, Variable, MustacheParser}
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
+import services.TemplateService
+import services.{ReadTemplateContent, CheckIfTemplateExists, TemplateOps}
+
+import services.TemplateOpsDefaultInterpreters._
 
 import scalaz.Scalaz._
 import scalaz.concurrent.Task
@@ -35,55 +39,14 @@ object Template extends Controller {
     else basePath.split("/").foldLeft(cwd)((z, ps) => z / ps)
 
   def placeholders(id: String) = Action { req =>
-    sealed trait TemplateOps[+A]
-    final case class CheckIfTemplateExists(path: Path) extends TemplateOps[Option[Path]]
-    final case class ReadTemplateContent(path: Option[Path]) extends TemplateOps[Option[String]]
-
-    type TemplateOpsCoyoneda[A] = Coyoneda[TemplateOps, A]
-
-    val checkIfTemplateExists = (path: Path) => Free.liftFC(CheckIfTemplateExists(path))
-
-    val readContent = (path: Option[Path]) => Free.liftFC(ReadTemplateContent(path))
-
-    val parseStatements = (content: Option[String]) =>
-      content.map(new MustacheParser().parse(_))
-
-    val filterVariables = (stmnts: Option[List[Statement]]) => stmnts.map(_.flatMap(_ match {
-      case v: Variable => Some(v.name.value)
-      case _ => None
-    }))
-
-    val program = Reader(checkIfTemplateExists).map(
-      _
-        .flatMap(readContent)
-        .map(parseStatements)
-        .map(filterVariables)
-    )
-
-    val result = program.map(
+    val program = TemplateService.getPlaceholders.map(
       _
         .map(maybeVariables =>
           maybeVariables.map(variables => Ok(Json.toJson(variables)))
             .getOrElse(NotFound)
         )
     )
-
-    val taskInterpreter: TemplateOps ~> Task = new (TemplateOps ~> Task) {
-      override def apply[A](op: TemplateOps[A]): Task[A] = op match {
-        case CheckIfTemplateExists(path) => checkIfTemplateExistsTask(path)
-        case ReadTemplateContent(maybePath) => readContentTask(maybePath)
-      }
-
-      def checkIfTemplateExistsTask(path: Path) = Task {
-        if (exists ! path) Some(path) else None
-      }
-
-      def readContentTask(maybePath: Option[Path]) = Task {
-        maybePath.map(read ! _)
-      }
-    }
-
-    val task = Free.runFC(result.run(absoluteBasePath / id))(taskInterpreter)
+    val task = Free.runFC(program.run(absoluteBasePath / id))(taskInterpreter)
     task.run
   }
 
