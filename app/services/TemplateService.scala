@@ -1,56 +1,46 @@
 package services
 
-import ammonite.ops.{read, exists, Path}
+import java.nio.charset.CharacterCodingException
+import java.nio.file.Path
+
+import org.mdoc.fshell.ProcessResult
+import org.mdoc.fshell.Shell
+import org.mdoc.fshell.Shell.ShellSyntax
 import org.fusesource.scalate.mustache.{Variable, Statement, MustacheParser}
 
 import scalaz._
 import scalaz.concurrent.Task
 
-sealed trait TemplateOps[+A]
-
-final case class CheckIfTemplateExists(path: Path) extends TemplateOps[Option[Path]]
-
-final case class ReadTemplateContent(path: Option[Path]) extends TemplateOps[Option[String]]
-
 object TemplateService {
 
-  type TemplateOpsCoyoneda[A] = Coyoneda[TemplateOps, A]
+  private[this] val checkIfTemplateExists: Path => Shell[Boolean] = Shell.fileExists(_)
 
-  private[this] val checkIfTemplateExists = (path: Path) => Free.liftFC(CheckIfTemplateExists(path))
+  private[this] val readContent: Path => Shell[Either[CharacterCodingException, String]] =
+    Shell.readAllBytes(_).map(_.decodeUtf8)
 
-  private[this] val readContent = (path: Option[Path]) => Free.liftFC(ReadTemplateContent(path))
+  private[this] val parseStatements: (String => List[Statement]) = new MustacheParser().parse(_)
 
-  private[this] val parseStatements = (content: Option[String]) =>
-    content.map(new MustacheParser().parse(_))
+  private[this] val filterVariables: List[Statement] => List[String] =
+    _.flatMap(_ match {
+      case v: Variable => Some(v.name.value)
+      case _ => None
+    })
 
-  private[this] val filterVariables = (stmnts: Option[List[Statement]]) => stmnts.map(_.flatMap(_ match {
-    case v: Variable => Some(v.name.value)
-    case _ => None
-  }))
+  private[this] val parseVariables: String => List[String] = parseStatements.andThen(filterVariables)
 
-  type GetPlaceholders = Reader[Path, Free[TemplateOpsCoyoneda, Option[List[String]]]]
+  private[this] val readContentIfTemplateExists: Path => Shell[Option[Either[CharacterCodingException, String]]] =
+    path => checkIfTemplateExists(path)
+      .flatMap(exists =>
+        if (exists) readContent(path).map(Some(_))
+        else Free.point(None))
 
-  val getPlaceholders: GetPlaceholders = Reader(checkIfTemplateExists).map(
-    _
-      .flatMap(readContent)
-      .map(parseStatements)
-      .map(filterVariables)
-  )
-}
+  private[this] val readContentAndParseVariables: Path => Shell[Option[Either[CharacterCodingException, List[String]]]] =
+    readContentIfTemplateExists
+      .andThen(shell => shell.map(option => option.map(either => either.right.map(parseVariables))))
 
-object TemplateOpsDefaultInterpreters {
-  val taskInterpreter: TemplateOps ~> Task = new (TemplateOps ~> Task) {
-    override def apply[A](op: TemplateOps[A]): Task[A] = op match {
-      case CheckIfTemplateExists(path) => checkIfTemplateExistsTask(path)
-      case ReadTemplateContent(maybePath) => readContentTask(maybePath)
-    }
+  type GetPlaceholders = Reader[Path, Shell[Option[Either[CharacterCodingException, List[String]]]]]
 
-    def checkIfTemplateExistsTask(path: Path) = Task {
-      if (exists ! path) Some(path) else None
-    }
-
-    def readContentTask(maybePath: Option[Path]) = Task {
-      maybePath.map(read ! _)
-    }
+  val getPlaceholders: GetPlaceholders = Reader {
+    readContentAndParseVariables
   }
 }

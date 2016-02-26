@@ -1,23 +1,20 @@
 package controllers
 
-import ammonite.ops
-
-import ammonite.ops._
+import java.nio.file.{DirectoryStream, Paths}
 
 import org.fusesource.scalate._
-import org.fusesource.scalate.mustache.{Statement, Variable, MustacheParser}
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
 import services.TemplateService
-import services.{ReadTemplateContent, CheckIfTemplateExists, TemplateOps}
 
-import services.TemplateOpsDefaultInterpreters._
-
+import scala.reflect.io.Path
 import scalaz.Scalaz._
 import scalaz.concurrent.Task
 import scalaz.{Writer, _}
 import scalaz.{Free, Id, ~>, Coyoneda}
+
+import org.mdoc.fshell.Shell.ShellSyntax
 
 import play.api.libs.json._
 
@@ -27,27 +24,34 @@ object Template extends Controller {
 
   implicit val templateViewFormat = Json.format[TemplateView]
 
-  val supportedFormats = List("mustache")
+  val supportedFormats = NonEmptyList("mustache")
   val templateEngine = new TemplateEngine
+
+  lazy val currentWorkingDir = Paths.get("").toAbsolutePath.toString
+
   val basePath = {
     val templatesDir = play.Play.application.configuration.getString("templates.dir")
     templatesDir + (if (templatesDir.endsWith("/")) "" else "/")
   }
 
-  val absoluteBasePath =
-    if (basePath.startsWith("/")) Path(basePath)
-    else basePath.split("/").foldLeft(cwd)((z, ps) => z / ps)
+  val absoluteBasePath = Paths.get(
+    if (basePath.startsWith("/")) basePath
+    else basePath.split("/").foldLeft(currentWorkingDir)((z, s) => z + "/" + s)
+  )
 
   def placeholders(id: String) = Action { req =>
     val program = TemplateService.getPlaceholders.map(
       _
-        .map(maybeVariables =>
-          maybeVariables.map(variables => Ok(Json.toJson(variables)))
-            .getOrElse(NotFound)
-        )
+        .map(option =>
+          option.map(either => either.bimap(
+            error => InternalServerError("invalid template encoding: currently only utf-8 is supported"),
+            variables => Ok(Json.toJson(variables))
+          ).merge).getOrElse(NotFound))
     )
-    val task = Free.runFC(program.run(absoluteBasePath / id))(taskInterpreter)
-    task.run
+    program
+      .run(absoluteBasePath.resolve(id))
+      .runTask
+      .run
   }
 
   def adminView() = Action {
@@ -55,12 +59,17 @@ object Template extends Controller {
   }
 
   def templateViews() = Action {
-    val templateFiles = (ls ! absoluteBasePath)
-      .filter(p => supportedFormats.exists(ext => p.name.endsWith("." + ext)))
-      .sortBy(_.name)
-      .map(file => TemplateView(file.name, file.size))
-
-    Ok(Json.toJson(templateFiles))
+    val supportedFormatsFilterString = supportedFormats.foldLeft("*.{")((z, ext) => z + "," + ext) + "}"
+    val files = java.nio.file.Files.newDirectoryStream(absoluteBasePath, supportedFormatsFilterString)
+    try {
+      import scala.collection.JavaConversions._
+      val templateFiles = files.iterator().toSeq
+        .map(path => TemplateView(path.getFileName.toString, path.toFile.length))
+        .sortBy(_.name)
+      Ok(Json.toJson(templateFiles))
+    } finally {
+      files.close()
+    }
   }
 
   def process(id: String) = Action { req =>
@@ -86,8 +95,7 @@ object Template extends Controller {
     def template(path: String)(vars: TemplateVars): Task[LogsWith[Option[Content]]] = Task {
       try {
         templateEngine.layout(path, vars).some.set(Vector.empty)
-      }
-      catch {
+      } catch {
         case _: ResourceNotFoundException => none[Content].set(Vector(s"template $id not found"))
         case e: TemplateException => none[Content].set(Vector(s"invalid template: ${e.getMessage}"))
       }
@@ -103,7 +111,8 @@ object Template extends Controller {
         .map(_.map(_.map(Ok(_)).getOrElse(NotFound)))
 
     processedTemplate.attemptRun match {
-      case -\/(error) => Logger.error("unexpected error:", error); InternalServerError(error.getMessage)
+      case -\/(error) =>
+        Logger.error("unexpected error:", error); InternalServerError(error.getMessage)
       case \/-(success) =>
         val (logs, result) = success.run
         val logMsgs = logs.foldLeft(s"processTemplate $id")((a, b) => a + "\n" + b)
