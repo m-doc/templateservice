@@ -116,14 +116,9 @@ object Template extends Controller {
         .map(_.flatMap(identity))
         .map(_.map(_.map(Ok(_)).getOrElse(NotFound)))
 
-    processedTemplate.attemptRun match {
-      case -\/(error) =>
-        Logger.error("unexpected error:", error); InternalServerError(error.getMessage)
-      case \/-(success) =>
-        val (logs, result) = success.run
-        val logMsgs = logs.foldLeft(s"processTemplate $id")((a, b) => a + "\n" + b)
-        Logger.info(logMsgs)
-        result
-    }
+    val (logs, result) = processedTemplate.run.run
+    val logMsgs = logs.foldLeft(s"processTemplate $id")((a, b) => a + "\n" + b)
+    Logger.info(logMsgs)
+    result
   }
 }
