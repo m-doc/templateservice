@@ -20,11 +20,9 @@ import play.api.libs.json._
 
 object Template extends Controller {
 
-  case class TemplateView(name: String, sizeInBytes: Long)
+  implicit val templateViewFormat = Json.format[TemplateService.TemplateView]
 
-  implicit val templateViewFormat = Json.format[TemplateView]
-
-  val supportedFormats = NonEmptyList("mustache")
+  val supportedFormats = List("mustache")
   val templateEngine = new TemplateEngine
 
   lazy val currentWorkingDir = Paths.get("").toAbsolutePath.toString
@@ -70,17 +68,14 @@ object Template extends Controller {
   }
 
   def templateViews() = Action {
-    val supportedFormatsFilterString = supportedFormats.foldLeft("*.{")((z, ext) => z + "," + ext) + "}"
-    val files = java.nio.file.Files.newDirectoryStream(absoluteBasePath, supportedFormatsFilterString)
-    try {
-      import scala.collection.JavaConversions._
-      val templateFiles = files.iterator().toSeq
-        .map(path => TemplateView(path.getFileName.toString, path.toFile.length))
-        .sortBy(_.name)
-      Ok(Json.toJson(templateFiles))
-    } finally {
-      files.close()
-    }
+    Logger.info("requested list of all templates")
+    val (logMsg, result) = TemplateService
+      .getTemplates.map(_.map(templates => Ok(Json.toJson(templates)).set(s"found ${templates.size} templates")))
+      .run((absoluteBasePath, supportedFormats))
+      .run
+      .run
+    Logger.info(logMsg)
+    result
   }
 
   def process(id: String) = Action { req =>
