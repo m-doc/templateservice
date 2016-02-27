@@ -3,7 +3,7 @@ package services
 import java.nio.charset.CharacterCodingException
 import java.nio.file.Path
 
-import org.fusesource.scalate.mustache.{MustacheParser, Statement, Variable}
+import org.fusesource.scalate.mustache.{ MustacheParser, Statement, Variable }
 import org.mdoc.fshell._
 
 import scalaz._

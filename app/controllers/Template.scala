@@ -6,7 +6,7 @@ import org.fusesource.scalate._
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{Action, _}
-import services.TemplateService
+import services.{TemplateView, TemplateService}
 
 import scala.reflect.io.Path
 import scalaz.Scalaz._
@@ -20,7 +20,7 @@ import play.api.libs.json._
 
 object Template extends Controller {
 
-  implicit val templateViewFormat = Json.format[TemplateService.TemplateView]
+  implicit val templateViewFormat = Json.format[TemplateView]
 
   val supportedFormats = List("mustache")
   val templateEngine = new TemplateEngine
@@ -78,6 +78,7 @@ object Template extends Controller {
     result
   }
 
+  //TODO move businesslogic to TemplateService
   def process(id: String) = Action { req =>
     type TemplateVars = Map[String, String]
     type Content = String
