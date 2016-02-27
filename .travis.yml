@@ -3,28 +3,43 @@ scala:
 - 2.11.7
 jdk:
 - oraclejdk8
+
 sudo: false
+
 cache:
   directories:
   - "$HOME/.ivy2/cache"
   - "$HOME/.sbt/boot/"
-script: sbt coverage test
+
+script:
+- sbt ++$TRAVIS_SCALA_VERSION mdocValidate
 after_success:
 - bash <(curl -s https://codecov.io/bash)
+
 before_deploy:
-- sbt ++$TRAVIS_SCALA_VERSION clean makeBintrayDeploymentDescriptorDeb debian:packageBin
+- sbt ++$TRAVIS_SCALA_VERSION mdocPublishDeb
 deploy:
   provider: bintray
   file: deploy.json
   user:
-    secure: W79fU4GPXMuhDhYhoZfHgcss84MDH5vIyaMEBkQwAhUgyC//PX4ACcSdNesR/m8EuHF/j7IMRmKNRJY8ecm4RGRWGiHLvjjrZb1FOr+q+n98vjl+EjQEcfDioA2qXBZ/ilsnoG9ALsmh4mxk+EV7fPYjfmulC4oHVQt4+NCoBCo=
+    secure: h61FE+zLVUb6XAlWSY1WaCbVCBHRpdaBYQurAbzc+qglYzQw7FuwnlEUDrKAly4SuGvPRrAjdySUOX2b/NBQHCmJ0fCJe1t5OEIiGK1D19kDFSjObJsjYbICvdf31fNLQeRa6dJVtaqGh9UPdY5gUWwLtNaTS2UWMAQYiBhofME=
   key:
-    secure: NLGSbwIiycOymEWE7dsGXe4KMQrgky2wfC/9tBcpODd/5Xyq1hZoZNeV7/8cNAGxgKlEJD+hkhozIJOUVn78qjuPHkmgq3KFgnAClfhfNUdlXLxBlr9jwkLl/T81aMbZ2NsL6h4L1GWNtWqjT9LNXhVWi8l0i4GdigSzYci85kg=
+    secure: jAFDNlLhRDUT94SdjvRke98yYs+RJtZdD+AJuEtxcSBRWE4mQ2fGtuE96/pxmQhDAnV5hBM2RUDlR4E5CU7WwErFWX26qPcyp81UTeh9/YUPF95gjwiY6Op7qXhL94aMbjOEu6fdnwy1S6rWZR/Q4jo6oSr5hNenVbrcHFUqHFI=
 after_deploy:
 - cd scripts && sh cloud-install.sh
+
+before_install:
+- openssl aes-256-cbc -K $encrypted_110b31e51dff_key -iv $encrypted_110b31e51dff_iv
+  -in scripts/cloud-identity.enc -out scripts/cloud-identity -d
+
 env:
   global:
-    secure: BRjB7V7WXzUnBzwqxr46zKBoJNSRvrb97wflgH1768p7G+Cv7lcGQiJ81f0xB/iSQNdJa7KlOYAn8Xjr4eADC5ygxHnzfTXBaKaoOcFh/JrFVXCRsqZNDQ1SI0UEljBGPC92U97Xk9YnBfnUKlet/y7q+N6i2DBmJ6BGqrz2Mwc=
-before_install:
-- openssl aes-256-cbc -K $encrypted_2d75662568e4_key -iv $encrypted_2d75662568e4_iv
-  -in scripts/cloud-identity.enc -out scripts/cloud-identity -d
+    secure: Y0RGqaShgPBUZNREz70IWikUkR2LNkBaCUtVJ/6Q0+whd2lsDHqrdW0ncI7q/Mq3GKcPVwB3ezbiDO3m9ZMFiTlqnv0bojtNZM4ul2WIFxeVGRSh2k+lFE8d6GDgweZ1s4W1IuSw/gkUJYZcXs/ygfTG9JonVTZN9e60By5SSvA=
+
+notifications:
+  webhooks:
+    urls:
+    - https://webhooks.gitter.im/e/13627e9a6e8fa0dec084 # m-doc/general
+    on_success: change
+    on_failure: always
+    on_start: never

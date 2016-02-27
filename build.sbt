@@ -1,8 +1,6 @@
+enablePlugins(MdocPlugin)
+
 name := "templates"
-
-version := "1.0-SNAPSHOT"
-
-scalaVersion := "2.11.7"
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 
@@ -29,3 +27,8 @@ javaOptions in Test += "-Dconfig.file=test/template/test.conf"
 
 lazy val root = (project in file("."))
   .enablePlugins(PlayScala, SbtWeb, MdocPlugin)
+
+serverLoading in Debian := com.typesafe.sbt.packager.archetypes.ServerLoader.SystemV
+linuxPackageMappings += mdocHomeDir.value
+
+mdocValidateCommands += "debian:packageBin"

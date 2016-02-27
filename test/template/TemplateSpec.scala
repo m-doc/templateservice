@@ -1,7 +1,6 @@
 package template
 
 import java.util.UUID
-
 import play.api.libs.json.{ JsArray, JsNumber, JsObject, JsString }
 import play.api.test.{ PlaySpecification, _ }
 

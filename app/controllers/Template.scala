@@ -1,6 +1,6 @@
 package controllers
 
-import java.nio.file.{DirectoryStream, Paths}
+import java.nio.file.Paths
 
 import org.fusesource.scalate._
 import play.Logger
@@ -16,7 +16,13 @@ import scalaz.{Free, Id, ~>, Coyoneda}
 
 import org.mdoc.fshell.Shell.ShellSyntax
 
+import org.fusesource.scalate.mustache.{ MustacheParser, Variable }
+import play.Logger
 import play.api.libs.json._
+import play.api.mvc.{ Action, _ }
+import scalaz._
+import scalaz.Scalaz._
+import scalaz.concurrent.Task
 
 object Template extends Controller {
 
@@ -121,5 +127,9 @@ object Template extends Controller {
     val logMsgs = logs.foldLeft(s"processTemplate $id")((a, b) => a + "\n" + b)
     Logger.info(logMsgs)
     result
+  }
+
+  def version = Action {
+    Ok(org.mdoc.templates.BuildInfo.version)
   }
 }
