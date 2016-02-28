@@ -14,6 +14,7 @@ import scalaz.Scalaz._
 import scalaz.concurrent.Task
 import scalaz.{Writer, _}
 import scalaz.{Free, Id, ~>, Coyoneda}
+import services.TemplateService._
 
 object Template extends Controller {
 
@@ -30,30 +31,38 @@ object Template extends Controller {
   }
 
   private[this] val absoluteBasePath = Paths.get(
-    if (basePath.startsWith("/")) basePath
-    else basePath.split("/").foldLeft(currentWorkingDir)((z, s) => z + "/" + s)
+    if (basePath.startsWith("/")) {
+      basePath
+    }
+    else {
+      basePath.split("/").foldLeft(currentWorkingDir)((z, s) => z + "/" + s)
+    }
   )
 
   def placeholders(id: String): Action[AnyContent] = Action {
     Logger.info(s"requested placeholders of template with id ${id}")
-    val program = TemplateService.getPlaceholders(absoluteBasePath.resolve(id))
-      .map(option =>
-        option.map(either => either.bimap(
-          error => {
-            val errorMsg = s"invalid template encoding for template with id ${id}: only utf-8 is supported"
-            InternalServerError(errorMsg).set(errorMsg)
-          },
-          variables => {
-            val logMsg = s"palceholders ${variables} found for template with id ${id}"
-            Ok(Json.toJson(variables)).set(logMsg)
-          }
-        ).merge).getOrElse(NotFound.set(s"template with id ${id} not found")))
+    val program = getPlaceholders(absoluteBasePath.resolve(id)).map {
+      _ match {
+        case TemplateNotFound => {
+          Logger.info(s"template with id ${id} not found")
+          NotFound
+        }
+        case InvalidTemplateEncoding => {
+          val errorMsg = s"invalid template encoding for template with id ${id}: only utf-8 is supported"
+          Logger.warn(errorMsg)
+          InternalServerError(errorMsg)
+        }
+        case Placeholders(placeholders) => {
+          Logger.info(s"palceholders ${placeholders} found for template with id ${id}")
+          Ok(Json.toJson(placeholders))
+        }
+      }
+    }
 
-    val (logMsg, result) = program
+    val result = program
       .runTask
       .run
-      .run
-    Logger.info(logMsg)
+
     Logger.info(s"returning ${result}")
     result
   }
@@ -64,8 +73,8 @@ object Template extends Controller {
 
   def templateViews(): Action[AnyContent] = Action {
     Logger.info("requested list of all templates")
-    val (logMsg, result) = TemplateService
-      .getTemplates.map(_.map(templates => Ok(Json.toJson(templates)).set(s"found ${templates.size} templates")))
+    val (logMsg, result) = getTemplates
+      .map(_.map(templates => Ok(Json.toJson(templates)).set(s"found ${templates.size} templates")))
       .run((absoluteBasePath, supportedFormats))
       .run
       .run

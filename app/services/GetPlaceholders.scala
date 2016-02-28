@@ -5,6 +5,7 @@ import java.nio.file.Path
 import org.fusesource.scalate.mustache.{ MustacheParser, Statement, Variable }
 import org.mdoc.fshell._
 import scalaz._
+import scalaz.Scalaz._
 
 trait GetPlaceholders {
   private[this] val checkIfTemplateExists: Path => Shell[Boolean] = Shell.fileExists
@@ -41,8 +42,19 @@ trait GetPlaceholders {
     readContentIfTemplateExists
       .andThen(shell => shell.map(option => option.map(either => either.right.map(parseVariables))))
 
-  type GetPlaceholders = Shell[Option[FailureOrVariables]]
+  sealed trait GetPlaceholdersResult
 
-  def getPlaceholders(path: Path): GetPlaceholders = readContentAndParseVariables(path)
+  case object TemplateNotFound extends GetPlaceholdersResult
 
+  case object InvalidTemplateEncoding extends GetPlaceholdersResult
+
+  case class Placeholders(placeholders: Variables) extends GetPlaceholdersResult
+
+  //type GetPlaceholders = Shell[Option[FailureOrVariables]]
+  def getPlaceholders(path: Path): Shell[GetPlaceholdersResult] = readContentAndParseVariables(path)
+    .map { option =>
+      option.map { either =>
+        either.bimap(_ => InvalidTemplateEncoding, new Placeholders(_)).merge
+      }.getOrElse(TemplateNotFound)
+    }
 }
