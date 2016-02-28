@@ -2,18 +2,16 @@ package controllers
 
 import java.nio.file.Paths
 import org.fusesource.scalate._
+import org.mdoc.fshell.Shell.ShellSyntax
 import play.api.libs.json._
 import play.api.mvc._
-import services.{TemplateView, TemplateService}
-import org.mdoc.fshell.Shell.ShellSyntax
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{ Action, _ }
 import scalaz._
 import scalaz.Scalaz._
 import scalaz.concurrent.Task
-import scalaz.{Writer, _}
-import scalaz.{Free, Id, ~>, Coyoneda}
+import services.{ TemplateService, TemplateView }
 import services.TemplateService._
 
 object Template extends Controller {
@@ -33,8 +31,7 @@ object Template extends Controller {
   private[this] val absoluteBasePath = Paths.get(
     if (basePath.startsWith("/")) {
       basePath
-    }
-    else {
+    } else {
       basePath.split("/").foldLeft(currentWorkingDir)((z, s) => z + "/" + s)
     }
   )
