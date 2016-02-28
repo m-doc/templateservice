@@ -8,13 +8,12 @@ libraryDependencies ++= Seq(
   cache,
   specs2 % Test,
   "org.scalatra.scalate" %% "scalate-core" % "1.7.1",
-  "org.scalaz" %% "scalaz-effect" % "7.1.6",
   "org.scalaz" %% "scalaz-concurrent" % "7.1.6",
   "org.webjars" %% "webjars-play" % "2.4.0-2",
   "org.webjars.npm" % "react" % "0.14.3",
   "org.webjars.npm" % "react-dom" % "0.14.3",
   "org.webjars.npm" % "jquery" % "2.1.4",
-  "com.lihaoyi" %% "ammonite-ops" % "0.5.2"
+  "org.m-doc" %% "fshell" % "0.0.0-42-gd54f355"
 )
 
 // see https://github.com/scalatra/scalatra/pull/325
@@ -27,7 +26,7 @@ dependencyOverrides := Set(
 javaOptions in Test += "-Dconfig.file=test/template/test.conf"
 
 lazy val root = (project in file("."))
-  .enablePlugins(PlayScala, SbtWeb)
+  .enablePlugins(PlayScala, SbtWeb, MdocPlugin)
 
 serverLoading in Debian := com.typesafe.sbt.packager.archetypes.ServerLoader.SystemV
 linuxPackageMappings += mdocHomeDir.value

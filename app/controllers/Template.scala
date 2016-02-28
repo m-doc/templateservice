@@ -1,60 +1,89 @@
 package controllers
 
-import ammonite.ops
-import ammonite.ops._
+import java.nio.file.Paths
 import org.fusesource.scalate._
-import org.fusesource.scalate.mustache.{ MustacheParser, Variable }
+import play.api.libs.json._
+import play.api.mvc._
+import services.{TemplateView, TemplateService}
+import org.mdoc.fshell.Shell.ShellSyntax
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{ Action, _ }
 import scalaz._
 import scalaz.Scalaz._
 import scalaz.concurrent.Task
+import scalaz.{Writer, _}
+import scalaz.{Free, Id, ~>, Coyoneda}
+import services.TemplateService._
 
 object Template extends Controller {
 
-  case class TemplateView(name: String, sizeInBytes: Long)
+  private[this] implicit val templateViewFormat = Json.format[TemplateView]
 
-  implicit val templateViewFormat = Json.format[TemplateView]
+  private[this] val supportedFormats = List("mustache")
+  private[this] val templateEngine = new TemplateEngine
 
-  val supportedFormats = List("mustache")
-  val templateEngine = new TemplateEngine
-  val basePath = {
+  private[this] lazy val currentWorkingDir = Paths.get("").toAbsolutePath.toString
+
+  private[this] val basePath = {
     val templatesDir = play.Play.application.configuration.getString("templates.dir")
     templatesDir + (if (templatesDir.endsWith("/")) "" else "/")
   }
 
-  val absoluteBasePath =
-    if (basePath.startsWith("/")) Path(basePath)
-    else basePath.split("/").foldLeft(cwd)((z, ps) => z / ps)
+  private[this] val absoluteBasePath = Paths.get(
+    if (basePath.startsWith("/")) {
+      basePath
+    }
+    else {
+      basePath.split("/").foldLeft(currentWorkingDir)((z, s) => z + "/" + s)
+    }
+  )
 
-  def placeholders(id: String) = Action { req =>
-    val path = (absoluteBasePath / id)
-    if (exists ! path) {
-      val templateContent = read ! path
-      val statements = new MustacheParser().parse(templateContent)
-      val variables = statements.flatMap(_ match {
-        case v: Variable => Some(v.name.value)
-        case _ => None
-      })
-      Ok(Json.toJson(variables))
-    } else NotFound
+  def placeholders(id: String): Action[AnyContent] = Action {
+    Logger.info(s"requested placeholders of template with id ${id}")
+    val program = getPlaceholders(absoluteBasePath.resolve(id)).map {
+      _ match {
+        case TemplateNotFound => {
+          Logger.info(s"template with id ${id} not found")
+          NotFound
+        }
+        case InvalidTemplateEncoding => {
+          val errorMsg = s"invalid template encoding for template with id ${id}: only utf-8 is supported"
+          Logger.warn(errorMsg)
+          InternalServerError(errorMsg)
+        }
+        case Placeholders(placeholders) => {
+          Logger.info(s"palceholders ${placeholders} found for template with id ${id}")
+          Ok(Json.toJson(placeholders))
+        }
+      }
+    }
+
+    val result = program
+      .runTask
+      .run
+
+    Logger.info(s"returning ${result}")
+    result
   }
 
-  def adminView() = Action {
+  def adminView(): Action[AnyContent] = Action {
     Ok(views.html.template_admin())
   }
 
-  def templateViews() = Action {
-    val templateFiles = (ls ! absoluteBasePath)
-      .filter(p => supportedFormats.exists(ext => p.name.endsWith("." + ext)))
-      .sortBy(_.name)
-      .map(file => TemplateView(file.name, file.size))
-
-    Ok(Json.toJson(templateFiles))
+  def templateViews(): Action[AnyContent] = Action {
+    Logger.info("requested list of all templates")
+    val (logMsg, result) = getTemplates
+      .map(_.map(templates => Ok(Json.toJson(templates)).set(s"found ${templates.size} templates")))
+      .run((absoluteBasePath, supportedFormats))
+      .run
+      .run
+    Logger.info(logMsg)
+    result
   }
 
-  def process(id: String) = Action { req =>
+  //TODO move businesslogic to TemplateService
+  def process(id: String): Action[AnyContent] = Action { req =>
     type TemplateVars = Map[String, String]
     type Content = String
     type Logs = Vector[String]
@@ -92,18 +121,13 @@ object Template extends Controller {
         .map(_.flatMap(identity))
         .map(_.map(_.map(Ok(_)).getOrElse(NotFound)))
 
-    processedTemplate.attemptRun match {
-      case -\/(error) =>
-        Logger.error("unexpected error:", error); InternalServerError(error.getMessage)
-      case \/-(success) =>
-        val (logs, result) = success.run
-        val logMsgs = logs.foldLeft(s"processTemplate $id")((a, b) => a + "\n" + b)
-        Logger.info(logMsgs)
-        result
-    }
+    val (logs, result) = processedTemplate.run.run
+    val logMsgs = logs.foldLeft(s"processTemplate $id")((a, b) => a + "\n" + b)
+    Logger.info(logMsgs)
+    result
   }
 
-  def version = Action {
+  def version: Action[AnyContent] = Action {
     Ok(org.mdoc.templates.BuildInfo.version)
   }
 }
