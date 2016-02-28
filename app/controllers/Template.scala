@@ -36,22 +36,20 @@ object Template extends Controller {
 
   def placeholders(id: String): Action[AnyContent] = Action {
     Logger.info(s"requested placeholders of template with id ${id}")
-    val program = TemplateService.getPlaceholders.map(
-      _
-        .map(option =>
-          option.map(either => either.bimap(
-            error => {
-              val errorMsg = s"invalid template encoding for template with id ${id}: only utf-8 is supported"
-              InternalServerError(errorMsg).set(errorMsg)
-            },
-            variables => {
-              val logMsg = s"palceholders ${variables} found for template with id ${id}"
-              Ok(Json.toJson(variables)).set(logMsg)
-            }
-          ).merge).getOrElse(NotFound.set(s"template with id ${id} not found")))
-    )
+    val program = TemplateService.getPlaceholders(absoluteBasePath.resolve(id))
+      .map(option =>
+        option.map(either => either.bimap(
+          error => {
+            val errorMsg = s"invalid template encoding for template with id ${id}: only utf-8 is supported"
+            InternalServerError(errorMsg).set(errorMsg)
+          },
+          variables => {
+            val logMsg = s"palceholders ${variables} found for template with id ${id}"
+            Ok(Json.toJson(variables)).set(logMsg)
+          }
+        ).merge).getOrElse(NotFound.set(s"template with id ${id} not found")))
+
     val (logMsg, result) = program
-      .run(absoluteBasePath.resolve(id))
       .runTask
       .run
       .run
