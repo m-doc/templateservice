@@ -1,7 +1,7 @@
 package template
 
 import java.util.UUID
-import play.api.libs.json.{ JsArray, JsNumber, JsObject, JsString }
+import play.api.libs.json.{JsArray, JsObject, JsString}
 import play.api.test.{ PlaySpecification, _ }
 
 object TemplateSpec extends PlaySpecification {

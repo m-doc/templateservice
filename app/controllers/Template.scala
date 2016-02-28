@@ -1,49 +1,40 @@
 package controllers
 
 import java.nio.file.Paths
-
 import org.fusesource.scalate._
-import play.Logger
 import play.api.libs.json._
-import play.api.mvc.{Action, _}
+import play.api.mvc._
 import services.{TemplateView, TemplateService}
-
-import scala.reflect.io.Path
-import scalaz.Scalaz._
-import scalaz.concurrent.Task
-import scalaz.{Writer, _}
-import scalaz.{Free, Id, ~>, Coyoneda}
-
 import org.mdoc.fshell.Shell.ShellSyntax
-
-import org.fusesource.scalate.mustache.{ MustacheParser, Variable }
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{ Action, _ }
 import scalaz._
 import scalaz.Scalaz._
 import scalaz.concurrent.Task
+import scalaz.{Writer, _}
+import scalaz.{Free, Id, ~>, Coyoneda}
 
 object Template extends Controller {
 
-  implicit val templateViewFormat = Json.format[TemplateView]
+  private[this] implicit val templateViewFormat = Json.format[TemplateView]
 
-  val supportedFormats = List("mustache")
-  val templateEngine = new TemplateEngine
+  private[this] val supportedFormats = List("mustache")
+  private[this] val templateEngine = new TemplateEngine
 
-  lazy val currentWorkingDir = Paths.get("").toAbsolutePath.toString
+  private[this] lazy val currentWorkingDir = Paths.get("").toAbsolutePath.toString
 
-  val basePath = {
+  private[this] val basePath = {
     val templatesDir = play.Play.application.configuration.getString("templates.dir")
     templatesDir + (if (templatesDir.endsWith("/")) "" else "/")
   }
 
-  val absoluteBasePath = Paths.get(
+  private[this] val absoluteBasePath = Paths.get(
     if (basePath.startsWith("/")) basePath
     else basePath.split("/").foldLeft(currentWorkingDir)((z, s) => z + "/" + s)
   )
 
-  def placeholders(id: String) = Action {
+  def placeholders(id: String): Action[AnyContent] = Action {
     Logger.info(s"requested placeholders of template with id ${id}")
     val program = TemplateService.getPlaceholders.map(
       _
@@ -69,11 +60,11 @@ object Template extends Controller {
     result
   }
 
-  def adminView() = Action {
+  def adminView(): Action[AnyContent] = Action {
     Ok(views.html.template_admin())
   }
 
-  def templateViews() = Action {
+  def templateViews(): Action[AnyContent] = Action {
     Logger.info("requested list of all templates")
     val (logMsg, result) = TemplateService
       .getTemplates.map(_.map(templates => Ok(Json.toJson(templates)).set(s"found ${templates.size} templates")))
@@ -85,7 +76,7 @@ object Template extends Controller {
   }
 
   //TODO move businesslogic to TemplateService
-  def process(id: String) = Action { req =>
+  def process(id: String): Action[AnyContent] = Action { req =>
     type TemplateVars = Map[String, String]
     type Content = String
     type Logs = Vector[String]
@@ -129,7 +120,7 @@ object Template extends Controller {
     result
   }
 
-  def version = Action {
+  def version: Action[AnyContent] = Action {
     Ok(org.mdoc.templates.BuildInfo.version)
   }
 }

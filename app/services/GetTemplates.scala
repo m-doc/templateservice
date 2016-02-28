@@ -1,7 +1,6 @@
 package services
 
 import java.nio.file.Path
-
 import scalaz._
 import scalaz.concurrent.Task
 
@@ -10,7 +9,6 @@ final case class TemplateView(name: String, sizeInBytes: Long)
 trait GetTemplates {
 
   //TODO switch to FSHell as soon as 'FilesInDirectory' is available
-
   type GetTemplates = Reader[(Path, Seq[String]), Task[Seq[TemplateView]]]
   val getTemplates: GetTemplates = Reader {
     case (path, fileEndings) =>
