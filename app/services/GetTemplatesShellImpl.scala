@@ -6,7 +6,7 @@ import scalaz.concurrent.Task
 
 final case class TemplateView(name: String, sizeInBytes: Long)
 
-trait GetTemplates {
+trait GetTemplatesShellImpl {
 
   //TODO switch to FSHell as soon as 'FilesInDirectory' is available
   type GetTemplates = Task[Seq[TemplateView]]

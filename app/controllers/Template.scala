@@ -4,7 +4,7 @@ import java.nio.file.Paths
 import org.fusesource.scalate._
 import play.api.libs.json._
 import play.api.mvc._
-import services.{TemplateView, TemplateService}
+import services._
 import org.mdoc.fshell.Shell.ShellSyntax
 import play.Logger
 import play.api.libs.json._
@@ -30,37 +30,38 @@ object Template extends Controller {
     templatesDir + (if (templatesDir.endsWith("/")) "" else "/")
   }
 
-  private[this] val absoluteBasePath = Paths.get(
-    if (basePath.startsWith("/")) {
+  private[this] val absoluteBasePath = {
+    val path = if (basePath.startsWith("/")) {
       basePath
     } else {
       basePath.split("/").foldLeft(currentWorkingDir)((z, s) => z + "/" + s)
     }
-  )
+    if (path.endsWith("/")) path else path + "/"
+  }
 
   def placeholders(id: String): Action[AnyContent] = Action {
     Logger.info(s"requested placeholders of template with id ${id}")
-    val program = getPlaceholders(absoluteBasePath.resolve(id)).map {
-      _ match {
-        case TemplateNotFound => {
-          Logger.info(s"template with id ${id} not found")
-          NotFound
-        }
-        case InvalidTemplateEncoding => {
-          val errorMsg = s"invalid template encoding for template with id ${id}: only utf-8 is supported"
-          Logger.warn(errorMsg)
-          InternalServerError(errorMsg)
-        }
-        case Placeholders(placeholders) => {
-          Logger.info(s"palceholders ${placeholders} found for template with id ${id}")
-          Ok(Json.toJson(placeholders))
+    Logger.info(s"templatepath: ${absoluteBasePath + id}")
+    val program = TemplateServiceFileSystemInterpreter(GetPlaceholders(absoluteBasePath + id))
+      .map { res =>
+        res match {
+          case TemplateNotFound => {
+            Logger.info(s"template with id ${id} not found")
+            NotFound(id)
+          }
+          case InvalidTemplateEncoding => {
+            val errorMsg = s"invalid template encoding for template with id ${id}: only utf-8 is supported"
+            Logger.warn(errorMsg)
+            InternalServerError(errorMsg)
+          }
+          case Placeholders(placeholders) => {
+            Logger.info(s"palceholders ${placeholders} found for template with id ${id}")
+            Ok(Json.toJson(placeholders))
+          }
         }
       }
-    }
 
-    val result = program
-      .runTask
-      .run
+    val result = program.run
 
     Logger.info(s"returning ${result}")
     result
@@ -72,7 +73,7 @@ object Template extends Controller {
 
   def templateViews(): Action[AnyContent] = Action {
     Logger.info("requested list of all templates")
-    val (logMsg, result) = getTemplates(absoluteBasePath, supportedFormats)
+    val (logMsg, result) = TemplateServiceFileSystemInterpreter(GetTemplates(absoluteBasePath, supportedFormats))
       .map(templates => Ok(Json.toJson(templates)).set(s"found ${templates.size} templates"))
       .run
       .run

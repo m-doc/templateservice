@@ -7,7 +7,7 @@ import org.mdoc.fshell._
 import scalaz._
 import scalaz.Scalaz._
 
-trait GetPlaceholders {
+trait GetPlaceholdersShellImpl {
   private[this] val checkIfTemplateExists: Path => Shell[Boolean] = Shell.fileExists
 
   type Content = String
@@ -42,15 +42,6 @@ trait GetPlaceholders {
     readContentIfTemplateExists
       .andThen(shell => shell.map(option => option.map(either => either.right.map(parseVariables))))
 
-  sealed trait GetPlaceholdersResult
-
-  case object TemplateNotFound extends GetPlaceholdersResult
-
-  case object InvalidTemplateEncoding extends GetPlaceholdersResult
-
-  case class Placeholders(placeholders: Variables) extends GetPlaceholdersResult
-
-  //type GetPlaceholders = Shell[Option[FailureOrVariables]]
   def getPlaceholders(path: Path): Shell[GetPlaceholdersResult] = readContentAndParseVariables(path)
     .map { option =>
       option.map { either =>
