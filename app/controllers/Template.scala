@@ -33,8 +33,7 @@ object Template extends Controller {
   private[this] val absoluteBasePath = Paths.get(
     if (basePath.startsWith("/")) {
       basePath
-    }
-    else {
+    } else {
       basePath.split("/").foldLeft(currentWorkingDir)((z, s) => z + "/" + s)
     }
   )
@@ -73,9 +72,8 @@ object Template extends Controller {
 
   def templateViews(): Action[AnyContent] = Action {
     Logger.info("requested list of all templates")
-    val (logMsg, result) = getTemplates
-      .map(_.map(templates => Ok(Json.toJson(templates)).set(s"found ${templates.size} templates")))
-      .run((absoluteBasePath, supportedFormats))
+    val (logMsg, result) = getTemplates(absoluteBasePath, supportedFormats)
+      .map(templates => Ok(Json.toJson(templates)).set(s"found ${templates.size} templates"))
       .run
       .run
     Logger.info(logMsg)
