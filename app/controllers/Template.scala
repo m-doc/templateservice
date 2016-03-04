@@ -5,7 +5,6 @@ import org.fusesource.scalate._
 import play.api.libs.json._
 import play.api.mvc._
 import services._
-import org.mdoc.fshell.Shell.ShellSyntax
 import play.Logger
 import play.api.libs.json._
 import play.api.mvc.{ Action, _ }
@@ -40,22 +39,22 @@ object Template extends Controller {
   }
 
   def placeholders(id: String): Action[AnyContent] = Action {
-    Logger.info(s"requested placeholders of template with id ${id}")
+    Logger.info(s"requested placeholders of template with id $id")
     Logger.info(s"templatepath: ${absoluteBasePath + id}")
     val program = TemplateServiceFileSystemInterpreter(GetPlaceholders(absoluteBasePath + id))
       .map { res =>
         res match {
           case TemplateNotFound => {
-            Logger.info(s"template with id ${id} not found")
+            Logger.info(s"template with id $id not found")
             NotFound(id)
           }
           case InvalidTemplateEncoding => {
-            val errorMsg = s"invalid template encoding for template with id ${id}: only utf-8 is supported"
+            val errorMsg = s"invalid template encoding for template with id $id: only utf-8 is supported"
             Logger.warn(errorMsg)
             InternalServerError(errorMsg)
           }
           case Placeholders(placeholders) => {
-            Logger.info(s"palceholders ${placeholders} found for template with id ${id}")
+            Logger.info(s"palceholders $placeholders found for template with id $id")
             Ok(Json.toJson(placeholders))
           }
         }
@@ -63,7 +62,7 @@ object Template extends Controller {
 
     val result = program.run
 
-    Logger.info(s"returning ${result}")
+    Logger.info(s"returning $result")
     result
   }
 

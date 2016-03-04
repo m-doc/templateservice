@@ -37,11 +37,9 @@ object TemplateServiceFileSystemInterpreter
   with GetTemplatesShellImpl {
 
   override def apply[A](fa: TemplateServiceOp[A]): Task[A] = fa match {
-    case GetPlaceholders(templateId) => {
+    case GetPlaceholders(templateId) =>
       getPlaceholders(Paths.get(templateId)).runTask
-    }
-    case GetTemplates(templateId, formats) => {
+    case GetTemplates(templateId, formats) =>
       getTemplates(Paths.get(templateId), formats)
-    }
   }
 }
