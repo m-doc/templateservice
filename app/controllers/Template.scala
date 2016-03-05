@@ -4,6 +4,7 @@ import java.nio.file.Paths
 import org.fusesource.scalate._
 import play.api.libs.json._
 import play.api.mvc._
+import services.TemplateServiceOp.TemplateVars
 import services._
 import play.Logger
 import play.api.libs.json._
@@ -20,7 +21,6 @@ object Template extends Controller {
   private[this] implicit val templateViewFormat = Json.format[TemplateView]
 
   private[this] val supportedFormats = List("mustache")
-  private[this] val templateEngine = new TemplateEngine
 
   private[this] lazy val currentWorkingDir = Paths.get("").toAbsolutePath.toString
 
@@ -80,49 +80,42 @@ object Template extends Controller {
     result
   }
 
-  //TODO move businesslogic to TemplateService
   def process(id: String): Action[AnyContent] = Action { req =>
-    type TemplateVars = Map[String, String]
-    type Content = String
-    type Logs = Vector[String]
-    type LogsWith[A] = Writer[Logs, A]
-
-    lazy val variables: LogsWith[TemplateVars] = {
-      val attributes = req.body.asJson match {
-        case Some(JsObject(content)) =>
-          val contentMap = content.toMap
-          Some(contentMap).set(Vector(s"request body contains: $contentMap"))
-        case _ => None.set(Vector(s"request body contains no json: ${req.body}"))
+    val variables: TemplateVars = req.body.asJson match {
+      case Some(JsObject(content)) => {
+        val contentMap = content.toMap
+        Logger.info(s"request body contains: $contentMap")
+        contentMap.mapValues(_.as[String])
       }
-      attributes.map {
-        _
-          .map[Map[String, String]](_.mapValues(_.as[String]))
-          .getOrElse(Map.empty)
+      case _ => {
+        Logger.warn(s"request body contains no json: ${req.body}")
+        Map.empty
       }
     }
 
-    def template(path: String)(vars: TemplateVars): Task[LogsWith[Option[Content]]] = Task {
-      try {
-        templateEngine.layout(path, vars).some.set(Vector.empty)
-      } catch {
-        case _: ResourceNotFoundException => none[Content].set(Vector(s"template $id not found"))
-        case e: TemplateException => none[Content].set(Vector(s"invalid template: ${e.getMessage}"))
+    val path = basePath + id
+
+    val program = TemplateServiceFileSystemInterpreter(ProcessTemplate(path, variables))
+      .map {
+        _ match {
+          case ProcessedTemplate(content) => {
+            Logger.info(s"successfully processed Template $path")
+            Ok(content)
+          }
+          case TemplateNotFound => {
+            val msg = s"template $path not found"
+            Logger.warn(msg)
+            NotFound(msg)
+          }
+          case InvalidTemplate(errMsg, exc) => {
+            val msg = s"template-definition og $path is invalid: $errMsg"
+            Logger.error(msg, exc)
+            InternalServerError(msg)
+          }
+        }
       }
-    }
 
-    lazy val path = basePath + id
-
-    lazy val processedTemplate: Task[LogsWith[Result]] =
-      variables
-        .map(vars => template(path)(vars))
-        .sequence
-        .map(_.flatMap(identity))
-        .map(_.map(_.map(Ok(_)).getOrElse(NotFound)))
-
-    val (logs, result) = processedTemplate.run.run
-    val logMsgs = logs.foldLeft(s"processTemplate $id")((a, b) => a + "\n" + b)
-    Logger.info(logMsgs)
-    result
+    program.run
   }
 
   def version: Action[AnyContent] = Action {
