@@ -1,7 +1,7 @@
 package services
 
 import org.fusesource.scalate._
-import services.TemplateServiceOp.TemplateVars
+import services.TemplateService._
 
 import scalaz.concurrent.Task
 

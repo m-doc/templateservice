@@ -4,7 +4,6 @@ import java.nio.file.Paths
 import org.fusesource.scalate._
 import play.api.libs.json._
 import play.api.mvc._
-import services.TemplateServiceOp.TemplateVars
 import services._
 import play.Logger
 import play.api.libs.json._

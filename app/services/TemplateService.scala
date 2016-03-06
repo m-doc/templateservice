@@ -1,13 +1,18 @@
 package services
 
 import java.nio.file.Paths
-import services.TemplateServiceOp._
+import services.TemplateService._
 import scalaz.concurrent.Task
 import scalaz.{~>, Coyoneda}
 import org.mdoc.fshell.Shell.ShellSyntax
 
 object TemplateService {
-
+  type Placeholder = String
+  type TemplateId = String
+  type TemplateFormat = String
+  type FreeTemplateServiceOp[A] = Coyoneda[TemplateServiceOp, A]
+  type Content = String
+  type TemplateVars = Map[String, String]
 }
 
 sealed trait ProcessTemplateResult
@@ -31,15 +36,6 @@ case class GetPlaceholders(templateId: TemplateId) extends TemplateServiceOp[Get
 case class GetTemplates(templateId: TemplateId, templateFormats: Seq[TemplateFormat]) extends TemplateServiceOp[Seq[TemplateView]]
 
 case class ProcessTemplate(templateId: TemplateId, vars: TemplateVars) extends TemplateServiceOp[ProcessTemplateResult]
-
-object TemplateServiceOp {
-  type Placeholder = String
-  type TemplateId = String
-  type TemplateFormat = String
-  type FreeTemplateServiceOp[A] = Coyoneda[TemplateServiceOp, A]
-  type Content = String
-  type TemplateVars = Map[String, String]
-}
 
 object TemplateServiceFileSystemInterpreter
   extends (TemplateServiceOp ~> Task)
