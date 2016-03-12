@@ -1,20 +1,26 @@
 package services
 
-import org.fusesource.scalate._
-import services.TemplateService._
+import java.io.{StringWriter, StringReader}
 
+import com.github.mustachejava.{MustacheException, DefaultMustacheFactory}
+import services.TemplateService._
 import scalaz.concurrent.Task
 
 trait ProcessTemplateImpl {
 
-  private[this] val templateEngine = new TemplateEngine
-
-  def template(path: String, vars: TemplateVars): Task[ProcessTemplateResult] = Task {
+  def template(content: String, vars: TemplateVars): Task[ProcessTemplateResult] = Task {
     try {
-      ProcessedTemplate(templateEngine.layout(path, vars))
+      ProcessedTemplate(processTemplateContent(content, vars))
     } catch {
-      case _: ResourceNotFoundException => TemplateNotFound
-      case e: TemplateException => InvalidTemplate(s"invalid template: ${e.getMessage}", e)
+      case e: MustacheException => InvalidTemplate(s"invalid template: ${e.getMessage}", e)
     }
+  }
+
+  private[this] def processTemplateContent(content: Content, vars: TemplateVars) = {
+    val mf = new DefaultMustacheFactory()
+    val mustache = mf.compile(new StringReader(content), "")
+    import scala.collection.JavaConversions._
+    val result = mustache.execute(new StringWriter(), mapAsJavaMap(vars))
+    result.toString
   }
 }

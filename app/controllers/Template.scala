@@ -1,6 +1,9 @@
 package controllers
 
-import java.nio.file.Paths
+import java.io.File
+import java.nio.charset.Charset
+import java.nio.file.{Path, Paths}
+import org.apache.commons.io.{FileUtils, IOUtils}
 import org.fusesource.scalate._
 import play.api.libs.json._
 import play.api.mvc._
@@ -94,27 +97,48 @@ object Template extends Controller {
 
     val path = basePath + id
 
-    val program = TemplateServiceFileSystemInterpreter(ProcessTemplate(path, variables))
-      .map {
-        _ match {
-          case ProcessedTemplate(content) => {
-            Logger.info(s"successfully processed Template $path")
-            Ok(content)
-          }
-          case TemplateNotFound => {
-            val msg = s"template $path not found"
-            Logger.warn(msg)
-            NotFound(msg)
-          }
-          case InvalidTemplate(errMsg, exc) => {
-            val msg = s"template-definition og $path is invalid: $errMsg"
-            Logger.error(msg, exc)
-            InternalServerError(msg)
+    import org.mdoc.fshell._
+    import org.mdoc.fshell.Shell.ShellSyntax
+
+    def fileContent(path: Path) = Shell.readAllBytes(path)
+      .map(_.decodeString(Charset.forName("UTF-8")))
+      .runTask
+
+    def program(content: String) = {
+      Logger.debug(s"template ($path) content:\n $content")
+      TemplateServiceFileSystemInterpreter(ProcessTemplate(content, variables))
+        .map {
+          _ match {
+            case ProcessedTemplate(content) => {
+              Logger.info(s"successfully processed Template $path")
+              Logger.debug(s"processed $path with result:\n$content")
+              Ok(content)
+            }
+            case TemplateNotFound => {
+              val msg = s"template $path not found"
+              Logger.warn(msg)
+              NotFound(msg)
+            }
+            case InvalidTemplate(errMsg, exc) => {
+              val msg = s"template-definition og $path is invalid: $errMsg"
+              Logger.error(msg, exc)
+              InternalServerError(msg)
+            }
           }
         }
-      }
+    }
 
-    program.run
+    fileContent(Paths.get(path))
+      .flatMap { either =>
+        either.bimap(
+          _ => Task {
+            InternalServerError(s"invalid encoding for template $path, expected UTF-8")
+          },
+          program(_)
+        )
+          .merge
+      }
+      .run
   }
 
   def version: Action[AnyContent] = Action {

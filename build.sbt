@@ -13,7 +13,9 @@ libraryDependencies ++= Seq(
   "org.webjars.npm" % "react" % "0.14.3",
   "org.webjars.npm" % "react-dom" % "0.14.3",
   "org.webjars.npm" % "jquery" % "2.1.4",
-  "org.m-doc" %% "fshell" % "0.0.0-42-gd54f355"
+  "org.m-doc" %% "fshell" % "0.0.0-42-gd54f355",
+  "commons-io" % "commons-io" % "2.4",
+  "com.github.spullara.mustache.java" % "compiler" % "0.9.1"
 )
 
 // see https://github.com/scalatra/scalatra/pull/325

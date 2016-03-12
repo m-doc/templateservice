@@ -15,6 +15,12 @@ object TemplateService {
   type TemplateVars = Map[String, String]
 }
 
+sealed trait TemplateFileType
+
+case class TextFile()
+
+case class ODTFile()
+
 sealed trait ProcessTemplateResult
 
 case class ProcessedTemplate(content: Content) extends ProcessTemplateResult
@@ -35,7 +41,7 @@ case class GetPlaceholders(templateId: TemplateId) extends TemplateServiceOp[Get
 
 case class GetTemplates(templateId: TemplateId, templateFormats: Seq[TemplateFormat]) extends TemplateServiceOp[Seq[TemplateView]]
 
-case class ProcessTemplate(templateId: TemplateId, vars: TemplateVars) extends TemplateServiceOp[ProcessTemplateResult]
+case class ProcessTemplate(content: Content, vars: TemplateVars) extends TemplateServiceOp[ProcessTemplateResult]
 
 object TemplateServiceFileSystemInterpreter
   extends (TemplateServiceOp ~> Task)
@@ -48,7 +54,7 @@ object TemplateServiceFileSystemInterpreter
       getPlaceholders(Paths.get(templateId)).runTask
     case GetTemplates(templateId, formats) =>
       getTemplates(Paths.get(templateId), formats)
-    case ProcessTemplate(templateId, vars) =>
-      template(templateId, vars)
+    case ProcessTemplate(content, vars) =>
+      template(content, vars)
   }
 }
