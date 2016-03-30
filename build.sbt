@@ -1,4 +1,5 @@
 enablePlugins(MdocPlugin)
+enablePlugins(Jolokia)
 
 name := "templates"
 
