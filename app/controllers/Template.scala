@@ -46,14 +46,11 @@ object Template extends Controller {
     val program = TemplateServiceFileSystemInterpreter(GetPlaceholders(absoluteBasePath + id))
       .map { res =>
         res match {
-          case TemplateNotFound => {
-            Logger.info(s"template with id $id not found")
-            NotFound(id)
+          case notFound: TemplateNotFound => {
+            handleTemplateNotFound(notFound)
           }
-          case InvalidTemplateEncoding => {
-            val errorMsg = s"invalid template encoding for template with id $id: only utf-8 is supported"
-            Logger.warn(errorMsg)
-            InternalServerError(errorMsg)
+          case invalidEncoding: InvalidTemplateEncoding => {
+            handleInvalidTemplateEncoding(invalidEncoding)
           }
           case Placeholders(placeholders) => {
             Logger.info(s"palceholders $placeholders found for template with id $id")
@@ -66,6 +63,18 @@ object Template extends Controller {
 
     Logger.info(s"returning $result")
     result
+  }
+
+  private[this] def handleTemplateNotFound(notFound: TemplateNotFound): Result = {
+    Logger.info(s"template with id ${notFound.id} not found")
+    NotFound(notFound.id)
+  }
+
+  private[this] def handleInvalidTemplateEncoding(invalidEncoding: InvalidTemplateEncoding): Result = {
+    val errorMsg = s"invalid template encoding for template with id ${invalidEncoding.id}: " +
+      s"expected ${invalidEncoding.expectedEncoding}"
+    Logger.warn(errorMsg)
+    InternalServerError(errorMsg)
   }
 
   def adminView(): Action[AnyContent] = Action {
@@ -97,14 +106,9 @@ object Template extends Controller {
 
     val path = basePath + id
 
-    import org.mdoc.fshell._
-    import org.mdoc.fshell.Shell.ShellSyntax
+    def fileContent(path: String) = TemplateServiceFileSystemInterpreter(GetTemplateContent(path))
 
-    def fileContent(path: Path) = Shell.readAllBytes(path)
-      .map(_.decodeString(Charset.forName("UTF-8")))
-      .runTask
-
-    def program(content: String) = {
+    def process(content: GetContentResult): Task[Result] = {
       Logger.debug(s"template ($path) content:\n $content")
       TemplateServiceFileSystemInterpreter(ProcessTemplate(content, variables))
         .map {
@@ -112,32 +116,26 @@ object Template extends Controller {
             case ProcessedTemplate(content) => {
               Logger.info(s"successfully processed Template $path")
               Logger.debug(s"processed $path with result:\n$content")
-              Ok(content)
+              Ok(content.content)
             }
-            case TemplateNotFound => {
-              val msg = s"template $path not found"
-              Logger.warn(msg)
-              NotFound(msg)
+            case notFound: TemplateNotFound => {
+              handleTemplateNotFound(notFound)
             }
             case InvalidTemplate(errMsg, exc) => {
               val msg = s"template-definition og $path is invalid: $errMsg"
               Logger.error(msg, exc)
               InternalServerError(msg)
             }
+            case invalidEncoding: InvalidTemplateEncoding => {
+              handleInvalidTemplateEncoding(invalidEncoding)
+            }
           }
         }
     }
 
-    fileContent(Paths.get(path))
-      .flatMap { either =>
-        either.bimap(
-          _ => Task {
-            InternalServerError(s"invalid encoding for template $path, expected UTF-8")
-          },
-          program(_)
-        )
-          .merge
-      }
+    fileContent(path).flatMap {
+      process(_)
+    }
       .run
   }
 

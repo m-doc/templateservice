@@ -45,7 +45,7 @@ trait GetPlaceholdersShellImpl {
   def getPlaceholders(path: Path): Shell[GetPlaceholdersResult] = readContentAndParseVariables(path)
     .map { option =>
       option.map { either =>
-        either.bimap(_ => InvalidTemplateEncoding, new Placeholders(_)).merge
-      }.getOrElse(TemplateNotFound)
+        either.bimap(_ => InvalidTemplateEncoding(path.toString, "UTF-8"), new Placeholders(_)).merge
+      }.getOrElse(TemplateNotFound(path.toString))
     }
 }

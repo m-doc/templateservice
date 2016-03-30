@@ -13,25 +13,26 @@ object TemplateService {
   type FreeTemplateServiceOp[A] = Coyoneda[TemplateServiceOp, A]
   type Content = String
   type TemplateVars = Map[String, String]
+  type Encoding = String
 }
 
-sealed trait TemplateFileType
-
-case class TextFile()
-
-case class ODTFile()
+final case class ProcessedTemplateContent(content: Content)
 
 sealed trait ProcessTemplateResult
 
-case class ProcessedTemplate(content: Content) extends ProcessTemplateResult
+case class ProcessedTemplate(content: ProcessedTemplateContent) extends ProcessTemplateResult
 
 case class InvalidTemplate(errorMsg: String, exception: Exception) extends ProcessTemplateResult
 
+sealed trait GetContentResult
+
+case class TemplateContent(content: Content) extends GetContentResult
+
 sealed trait GetPlaceholdersResult
 
-case object TemplateNotFound extends GetPlaceholdersResult with ProcessTemplateResult
+case class TemplateNotFound(id: TemplateId) extends GetPlaceholdersResult with ProcessTemplateResult with GetContentResult
 
-case object InvalidTemplateEncoding extends GetPlaceholdersResult
+case class InvalidTemplateEncoding(id: TemplateId, expectedEncoding: Encoding) extends GetPlaceholdersResult with GetContentResult with ProcessTemplateResult
 
 case class Placeholders(placeholders: Seq[Placeholder]) extends GetPlaceholdersResult
 
@@ -41,13 +42,16 @@ case class GetPlaceholders(templateId: TemplateId) extends TemplateServiceOp[Get
 
 case class GetTemplates(templateId: TemplateId, templateFormats: Seq[TemplateFormat]) extends TemplateServiceOp[Seq[TemplateView]]
 
-case class ProcessTemplate(content: Content, vars: TemplateVars) extends TemplateServiceOp[ProcessTemplateResult]
+case class ProcessTemplate(content: GetContentResult, vars: TemplateVars) extends TemplateServiceOp[ProcessTemplateResult]
+
+case class GetTemplateContent(templateId: TemplateId) extends TemplateServiceOp[GetContentResult]
 
 object TemplateServiceFileSystemInterpreter
   extends (TemplateServiceOp ~> Task)
   with GetPlaceholdersShellImpl
   with GetTemplatesShellImpl
-  with ProcessTemplateImpl {
+  with ProcessTemplateImpl
+  with GetTemplateContentShellImpl {
 
   override def apply[A](fa: TemplateServiceOp[A]): Task[A] = fa match {
     case GetPlaceholders(templateId) =>
@@ -55,6 +59,10 @@ object TemplateServiceFileSystemInterpreter
     case GetTemplates(templateId, formats) =>
       getTemplates(Paths.get(templateId), formats)
     case ProcessTemplate(content, vars) =>
-      template(content, vars)
+      Task {
+        template(content, vars)
+      }
+    case GetTemplateContent(templateId) =>
+      fileContent(Paths.get(templateId)).runTask
   }
 }
